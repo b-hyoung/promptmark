@@ -38,4 +38,12 @@ class AuthMapTest {
         assertThat(req.satisfiedBy(Role.ADMIN)).isTrue();
         assertThat(req.satisfiedBy(Role.ANONYMOUS)).isFalse();
     }
+
+    @Test
+    void chat_endpoints_are_anonymous() {
+        assertThat(AuthMap.required("chat.page")).isEqualTo(Role.ANONYMOUS);
+        assertThat(AuthMap.required("chat.recommend")).isEqualTo(Role.ANONYMOUS);
+        assertThat(AuthMap.isAnonymous("chat.page")).isTrue();
+        assertThat(AuthMap.isAnonymous("chat.recommend")).isTrue();
+    }
 }

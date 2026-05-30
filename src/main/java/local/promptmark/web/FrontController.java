@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import local.promptmark.config.DataSourceProvider;
+import local.promptmark.config.Env;
 import local.promptmark.dao.AssetDao;
 import local.promptmark.dao.DownloadDao;
 import local.promptmark.dao.OrderDao;
@@ -24,6 +25,14 @@ import local.promptmark.service.AssetService;
 import local.promptmark.service.AuthService;
 import local.promptmark.service.DownloadService;
 import local.promptmark.service.OrderService;
+import local.promptmark.service.RecommendService;
+import local.promptmark.service.llm.EmbeddingClient;
+import local.promptmark.service.llm.LlmAgent;
+import local.promptmark.service.llm.LlmClient;
+import local.promptmark.service.llm.LlmConfig;
+import local.promptmark.service.llm.Tools;
+import local.promptmark.web.action.chat.ChatPageAction;
+import local.promptmark.web.action.chat.RecommendAction;
 import local.promptmark.web.action.asset.CreateAction;
 import local.promptmark.web.action.asset.CreateFormAction;
 import local.promptmark.web.action.asset.DeleteAction;
@@ -70,8 +79,17 @@ public class FrontController extends HttpServlet {
         DownloadDao downloadDao = new DownloadDao(ds);
         ReportDao reportDao = new ReportDao(ds);
 
+        // ── LLM / agent wiring (Phase 4) ─────────────────────────────
+        LlmConfig llmConfig = LlmConfig.fromEnv(Env.load());
+        EmbeddingClient embeddingClient = llmConfig.newEmbeddingClient();
+        LlmClient llmClient = llmConfig.newLlmClient();
+        Tools tools = new Tools(assetDao, tagDao, userDao, embeddingClient);
+        LlmAgent llmAgent = new LlmAgent(llmClient, embeddingClient, tools, llmConfig);
+        RecommendService recommendService = new RecommendService(
+            assetDao, tagDao, embeddingClient, llmAgent, llmConfig);
+
         AuthService authService = new AuthService(userDao);
-        AssetService assetService = new AssetService(ds, assetDao, tagDao);
+        AssetService assetService = new AssetService(ds, assetDao, tagDao, embeddingClient);
         OrderService orderService = new OrderService(ds, assetDao, orderDao);
         DownloadService downloadService = new DownloadService(ds, assetDao, orderDao, downloadDao);
 
@@ -104,7 +122,12 @@ public class FrontController extends HttpServlet {
         registry.put("order.complete.GET",  new CompleteAction(orderService));
         registry.put("order.history.GET",   new HistoryAction(orderService));
 
-        log.info("FrontController initialised with {} actions", registry.size());
+        // ── Chat / AI agent (Phase 4) ─────────────────────────────────
+        registry.put("chat.page.GET",       new ChatPageAction());
+        registry.put("chat.recommend.POST", new RecommendAction(recommendService));
+
+        log.info("FrontController initialised with {} actions (LLM enabled={})",
+            registry.size(), llmConfig.enabled());
     }
 
     @Override

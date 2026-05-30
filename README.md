@@ -22,6 +22,13 @@
 
 전체 설계는 [docs/superpowers/specs/2026-05-30-promptmark-design.md](docs/superpowers/specs/2026-05-30-promptmark-design.md) 참고.
 
+## 진행 상황
+
+Phase 1 (스캐폴드) → Phase 2 (인증) → Phase 3 (마켓플레이스 코어) → Phase 4 (AI 에이전트)
+→ **Phase 5 (Admin · Mypage · 폴리시) 완료** — 가입/로그인, 자산 CRUD·검색·다운로드,
+장바구니, 목업 결제, AI 추천 챗봇, 마이페이지, 관리자 신고 처리 & 계정 정지,
+i18n(ko/en) 번들, 폴리시된 에러 페이지가 모두 동작한다.
+
 ## 빠른 시작 (Phase 1)
 
 ### 사전 준비

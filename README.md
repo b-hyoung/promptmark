@@ -22,11 +22,37 @@
 
 전체 설계는 [docs/superpowers/specs/2026-05-30-promptmark-design.md](docs/superpowers/specs/2026-05-30-promptmark-design.md) 참고.
 
-## 실행 (예정)
+## 빠른 시작 (Phase 1)
+
+### 사전 준비
+
+- JDK 11+
+- Docker Desktop (통합 테스트용)
+- Supabase 프로젝트 + Postgres 접속 정보
+
+### Supabase 초기 설정 (한 번)
+
+1. Supabase 프로젝트 생성 → Project Settings → Database → Connection String (Transaction Pooler) 복사
+2. SQL Editor에서 다음을 한 번 실행:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   CREATE EXTENSION IF NOT EXISTS pg_trgm;
+   ```
+3. `.env.example`을 `.env`로 복사 후 `DB_URL`, `DB_USER`, `DB_PASSWORD` 채우기
+
+### 실행
 
 ```bash
-cp .env.example .env       # 키 채우기
+cp .env.example .env       # 그리고 키 채우기
 ./gradlew run              # http://localhost:8080/promptmark/
-./gradlew test
-./gradlew integrationTest  # Testcontainers (Docker 필요)
+./gradlew test             # 단위 테스트
+./gradlew integrationTest  # 통합 테스트 (Docker 필요)
 ```
+
+부팅 시 자동으로:
+- DB 스키마 적용 (`V1__init.sql`)
+- `ADMIN_EMAIL`/`ADMIN_PWD`로 ADMIN 계정 upsert
+
+### 트레이스 ID
+
+모든 요청에 `X-Trace-Id` 응답 헤더가 붙고, 같은 ID가 로그의 `%X{traceId}`로 찍힙니다.

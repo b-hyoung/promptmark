@@ -177,6 +177,57 @@ class AssetServiceTest {
         verify(assetDao).insert(any(Asset.class));
     }
 
+    @Test
+    void create_calls_embedding_when_enabled() {
+        Map<String, String> form = baseForm("PROMPT");
+        when(assetDao.insert(any(Asset.class))).thenReturn(99L);
+        local.promptmark.service.llm.EmbeddingClient embed =
+            Mockito.mock(local.promptmark.service.llm.EmbeddingClient.class);
+        when(embed.enabled()).thenReturn(true);
+        when(embed.embed(anyString())).thenReturn(new float[]{0.1f, 0.2f});
+
+        AssetService withEmbed = new AssetService(ds, assetDao, tagDao, embed);
+        withEmbed.createAsset(seller(1L), form, "hello body", null,
+            Collections.emptyList());
+
+        verify(embed).embed(anyString());
+        verify(assetDao).updateEmbedding(eq(99L), any(float[].class));
+    }
+
+    @Test
+    void create_swallows_embedding_failure() {
+        Map<String, String> form = baseForm("PROMPT");
+        when(assetDao.insert(any(Asset.class))).thenReturn(100L);
+        local.promptmark.service.llm.EmbeddingClient embed =
+            Mockito.mock(local.promptmark.service.llm.EmbeddingClient.class);
+        when(embed.enabled()).thenReturn(true);
+        when(embed.embed(anyString()))
+            .thenThrow(new local.promptmark.service.llm.LlmException("network down"));
+
+        AssetService withEmbed = new AssetService(ds, assetDao, tagDao, embed);
+        long id = withEmbed.createAsset(seller(1L), form, "hello body", null,
+            Collections.emptyList());
+
+        assertThat(id).isEqualTo(100L);
+        verify(assetDao, never()).updateEmbedding(anyLong(), any(float[].class));
+    }
+
+    @Test
+    void create_skips_embedding_when_disabled() {
+        Map<String, String> form = baseForm("PROMPT");
+        when(assetDao.insert(any(Asset.class))).thenReturn(11L);
+        local.promptmark.service.llm.EmbeddingClient embed =
+            Mockito.mock(local.promptmark.service.llm.EmbeddingClient.class);
+        when(embed.enabled()).thenReturn(false);
+
+        AssetService withEmbed = new AssetService(ds, assetDao, tagDao, embed);
+        withEmbed.createAsset(seller(1L), form, "hello body", null,
+            Collections.emptyList());
+
+        verify(embed, never()).embed(anyString());
+        verify(assetDao, never()).updateEmbedding(anyLong(), any(float[].class));
+    }
+
     // ───── getDetailAndIncrementView ─────────────────────────────────
 
     @Test

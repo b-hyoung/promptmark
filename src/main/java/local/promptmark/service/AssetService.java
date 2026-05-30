@@ -11,12 +11,18 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import local.promptmark.dao.AssetDao;
 import local.promptmark.dao.TagDao;
 import local.promptmark.dto.Asset;
 import local.promptmark.dto.AssetStatus;
 import local.promptmark.dto.AssetType;
 import local.promptmark.dto.LoginUser;
+import local.promptmark.service.llm.DisabledEmbeddingClient;
+import local.promptmark.service.llm.EmbeddingClient;
+import local.promptmark.service.llm.LlmException;
 import local.promptmark.web.ForbiddenException;
 import local.promptmark.web.NotFoundException;
 import local.promptmark.web.Role;
@@ -30,11 +36,14 @@ import local.promptmark.web.ValidationException;
  */
 public class AssetService {
 
+    private static final Logger log = LoggerFactory.getLogger(AssetService.class);
+
     private static final int TITLE_MIN = 2;
     private static final int TITLE_MAX = 120;
     private static final int SUMMARY_MIN = 2;
     private static final int SUMMARY_MAX = 300;
     private static final int URL_MAX = 500;
+    private static final int EMBEDDING_BODY_PREVIEW = 500;
 
     private static final Pattern URL_RE = Pattern.compile(
         "^https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+$");
@@ -42,11 +51,20 @@ public class AssetService {
     private final DataSource ds;
     private final AssetDao assetDao;
     private final TagDao tagDao;
+    private final EmbeddingClient embeddingClient;
 
+    /** Backwards-compatible constructor; embedding generation is disabled. */
     public AssetService(DataSource ds, AssetDao assetDao, TagDao tagDao) {
+        this(ds, assetDao, tagDao, new DisabledEmbeddingClient());
+    }
+
+    public AssetService(DataSource ds, AssetDao assetDao, TagDao tagDao,
+                        EmbeddingClient embeddingClient) {
         this.ds = ds;
         this.assetDao = assetDao;
         this.tagDao = tagDao;
+        this.embeddingClient = (embeddingClient == null)
+            ? new DisabledEmbeddingClient() : embeddingClient;
     }
 
     /**
@@ -78,14 +96,14 @@ public class AssetService {
             bodyVal, fileVal, demoUrl, videoUrl, price,
             AssetStatus.PUBLIC, 0, 0, null, null);
 
+        long newId;
         try (Connection c = ds.getConnection()) {
             boolean prevAutoCommit = c.getAutoCommit();
             c.setAutoCommit(false);
             try {
-                long newId = assetDao.insert(draft);
+                newId = assetDao.insert(draft);
                 tagDao.replaceForAsset(newId, tags, c);
                 c.commit();
-                return newId;
             } catch (RuntimeException ex) {
                 c.rollback();
                 throw ex;
@@ -95,6 +113,11 @@ public class AssetService {
         } catch (SQLException e) {
             throw new RuntimeException("createAsset failed: " + e.getMessage(), e);
         }
+
+        // Best-effort embedding generation after the transactional commit.
+        // Failures here MUST NOT roll the asset back — log + continue.
+        tryUpdateEmbedding(newId, title, summary, bodyVal);
+        return newId;
     }
 
     /** Fetch + bump view count. NotFound when missing or DELETED. */
@@ -162,6 +185,42 @@ public class AssetService {
             }
         } catch (SQLException e) {
             throw new RuntimeException("editAsset failed: " + e.getMessage(), e);
+        }
+
+        // Re-embed after a successful edit; same best-effort policy as create.
+        tryUpdateEmbedding(existing.getId(), title, summary, bodyVal);
+    }
+
+    /**
+     * Build the embedding text ({@code title + summary + body_preview(<=500)})
+     * and persist the vector to the {@code assets.embedding} column. Any
+     * failure is logged and swallowed — embedding is best-effort metadata, not
+     * a correctness invariant of the asset row.
+     */
+    private void tryUpdateEmbedding(long assetId, String title, String summary, String body) {
+        if (embeddingClient == null || !embeddingClient.enabled()) return;
+        StringBuilder sb = new StringBuilder();
+        if (title != null) sb.append(title);
+        sb.append(' ');
+        if (summary != null) sb.append(summary);
+        sb.append(' ');
+        if (body != null) {
+            sb.append(body.length() <= EMBEDDING_BODY_PREVIEW
+                ? body
+                : body.substring(0, EMBEDDING_BODY_PREVIEW));
+        }
+        String text = sb.toString().trim();
+        if (text.isEmpty()) return;
+        try {
+            float[] vec = embeddingClient.embed(text);
+            if (vec != null && vec.length > 0) {
+                assetDao.updateEmbedding(assetId, vec);
+            }
+        } catch (LlmException e) {
+            log.warn("embedding update failed for asset {}: {}", assetId, e.getMessage());
+        } catch (RuntimeException e) {
+            log.warn("embedding update threw unexpectedly for asset {}: {}",
+                assetId, e.getMessage(), e);
         }
     }
 

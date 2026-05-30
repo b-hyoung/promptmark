@@ -64,6 +64,30 @@ public class UserDao {
         return exists("SELECT 1 FROM users WHERE nickname = ?", nickname);
     }
 
+    /**
+     * Update the {@code status} column for a user. Accepted values are
+     * {@code ACTIVE} and {@code BANNED}; anything else is rejected to keep
+     * callers honest (the DB CHECK constraint would also reject it).
+     */
+    public void updateStatus(long userId, String status) {
+        if (status == null) {
+            throw new IllegalArgumentException("status must not be null");
+        }
+        String s = status.trim().toUpperCase();
+        if (!"ACTIVE".equals(s) && !"BANNED".equals(s)) {
+            throw new IllegalArgumentException("status must be ACTIVE or BANNED, got: " + status);
+        }
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                 "UPDATE users SET status = ? WHERE id = ?")) {
+            ps.setString(1, s);
+            ps.setLong(2, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("updateStatus failed: " + e.getMessage(), e);
+        }
+    }
+
     public User insert(String email, String passwordHash, String nickname, Role role) {
         String sql = "INSERT INTO users (email, password_hash, nickname, role) " +
                      "VALUES (?, ?, ?, ?) " +

@@ -4,6 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 
+import javax.sql.DataSource;
+
+import local.promptmark.boot.AdminSeeder;
+import local.promptmark.boot.SchemaApplier;
+import local.promptmark.config.DataSourceProvider;
+import local.promptmark.config.Env;
+
 import org.apache.catalina.Context;
 import org.apache.catalina.startup.Tomcat;
 import org.slf4j.Logger;
@@ -16,13 +23,21 @@ public final class DevServer {
     private DevServer() {}
 
     public static void main(String[] args) throws Exception {
-        int requestedPort = Integer.parseInt(System.getProperty("port", "8080"));
+        Env env = Env.load();
+
+        DataSource ds = DataSourceProvider.init(env);
+        SchemaApplier.applyFromClasspath(ds, "db/migration/V1__init.sql");
+        AdminSeeder.seed(ds,
+            env.getOrDefault("ADMIN_EMAIL", ""),
+            env.getOrDefault("ADMIN_PWD", ""));
+
+        int requestedPort = env.getInt("PORT", 8080);
         int port = findAvailablePort(requestedPort);
-        String contextPath = System.getProperty("contextPath", "/promptmark");
+        String contextPath = env.getOrDefault("CONTEXT_PATH", "/promptmark");
 
         File webappDir = new File("src/main/webapp").getAbsoluteFile();
         if (!webappDir.isDirectory()) {
-            throw new IllegalStateException("Webapp directory not found: " + webappDir);
+            throw new IllegalStateException("Webapp dir not found: " + webappDir);
         }
 
         Tomcat tomcat = new Tomcat();
@@ -34,6 +49,12 @@ public final class DevServer {
 
         Context ctx = tomcat.addWebapp(contextPath, webappDir.getAbsolutePath());
         ctx.setReloadable(true);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try { tomcat.stop(); } catch (Exception ignored) {}
+            DataSourceProvider.close();
+            log.info("promptmark stopped");
+        }));
 
         tomcat.start();
         if (port != requestedPort) {
@@ -47,9 +68,8 @@ public final class DevServer {
         for (int port = startingPort; port < startingPort + 20; port++) {
             try (ServerSocket s = new ServerSocket(port)) {
                 return port;
-            } catch (IOException ignored) { /* try next */ }
+            } catch (IOException ignored) {}
         }
-        throw new IllegalStateException(
-            "No available port from " + startingPort + " to " + (startingPort + 19));
+        throw new IllegalStateException("No available port from " + startingPort);
     }
 }

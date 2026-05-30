@@ -26,6 +26,21 @@ public class UserDao {
         this.ds = ds;
     }
 
+    public Optional<User> findById(long id) {
+        String sql = "SELECT id, email, password_hash, nickname, role, status, created_at " +
+                     "FROM users WHERE id = ?";
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(map(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findById failed: " + e.getMessage(), e);
+        }
+    }
+
     public Optional<User> findByEmail(String email) {
         String sql = "SELECT id, email, password_hash, nickname, role, status, created_at " +
                      "FROM users WHERE email = ?";

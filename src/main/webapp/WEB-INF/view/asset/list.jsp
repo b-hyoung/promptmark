@@ -1,12 +1,14 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
-<c:set var="pageTitle" value="자산 목록 — promptmark"/>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<fmt:setBundle basename="bundle.messages"/>
+<c:set var="pageTitle"><fmt:message key="asset.list_title"/> — promptmark</c:set>
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <%@ include file="/WEB-INF/view/layout/header.jsp" %>
 
 <section class="asset-list">
-  <h1>자산 목록</h1>
+  <h1><fmt:message key="asset.list_title"/></h1>
 
   <c:if test="${param.msg == 'deleted_ok'}">
     <p class="form-notice">자산이 삭제되었습니다.</p>

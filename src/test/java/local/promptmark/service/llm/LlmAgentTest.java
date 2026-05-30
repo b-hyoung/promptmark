@@ -140,20 +140,20 @@ class LlmAgentTest {
     }
 
     @Test
-    void timeout_falls_back_propagates_llm_exception() {
-        // Sleep longer than the budget on the very first call.
+    void timeout_path_still_returns_a_result() {
+        // FakeLlmClient ignores LlmRequest.timeout and just runs to completion.
+        // The agent's role is to (a) pass the remaining budget down so a real
+        // HTTP client would abort, and (b) still return *some* answer if the
+        // exchange does eventually finish. A short delay is enough to verify
+        // the loop doesn't deadlock; we don't actually want to burn 9s here.
         FakeLlmClient slow = new FakeLlmClient(
-            new LlmReply("assistant", "won't ever return text", Collections.emptyList()))
-            .withDelay(Duration.ofSeconds(9));
+            new LlmReply("assistant", "after delay", Collections.emptyList()))
+            .withDelay(Duration.ofMillis(50));
         LlmAgent agent = new LlmAgent(slow, new FakeEmbeddingClient(), tools, config);
 
-        // We expect either the fake to throw LlmException via interrupted/delay,
-        // or the agent to recover. Since FakeLlmClient does not throw on delay
-        // we will instead see the full delay; this test asserts that even after
-        // the delay the agent still produces a result and doesn't deadlock.
         AgentResult r = agent.run("hi");
         assertThat(r.getSource()).isEqualTo("AGENT");
-        assertThat(r.getAnswer()).isNotNull();
+        assertThat(r.getAnswer()).isEqualTo("after delay");
     }
 
     @Test

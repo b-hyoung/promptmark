@@ -6,6 +6,7 @@
   <a class="brand" href="${ctx}/">promptmark</a>
   <ul class="nav-links">
     <li><a href="${ctx}/app/asset/list">자산 목록</a></li>
+    <li><a href="${ctx}/app/chat">AI 추천</a></li>
     <c:if test="${empty me}">
       <li><a href="${ctx}/app/auth/login">로그인</a></li>
       <li><a href="${ctx}/app/auth/signup">회원가입</a></li>

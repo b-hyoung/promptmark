@@ -21,6 +21,7 @@ import local.promptmark.dao.OrderDao;
 import local.promptmark.dao.ReportDao;
 import local.promptmark.dao.TagDao;
 import local.promptmark.dao.UserDao;
+import local.promptmark.service.AdminService;
 import local.promptmark.service.AssetService;
 import local.promptmark.service.AuthService;
 import local.promptmark.service.DownloadService;
@@ -50,6 +51,10 @@ import local.promptmark.web.action.auth.SignupFormAction;
 import local.promptmark.web.action.cart.AddAction;
 import local.promptmark.web.action.cart.RemoveAction;
 import local.promptmark.web.action.cart.ViewAction;
+import local.promptmark.web.action.admin.BanUserAction;
+import local.promptmark.web.action.admin.ReportsAction;
+import local.promptmark.web.action.admin.ResolveReportAction;
+import local.promptmark.web.action.mypage.IndexAction;
 import local.promptmark.web.action.order.CheckoutFormAction;
 import local.promptmark.web.action.order.CompleteAction;
 import local.promptmark.web.action.order.HistoryAction;
@@ -92,6 +97,7 @@ public class FrontController extends HttpServlet {
         AssetService assetService = new AssetService(ds, assetDao, tagDao, embeddingClient);
         OrderService orderService = new OrderService(ds, assetDao, orderDao);
         DownloadService downloadService = new DownloadService(ds, assetDao, orderDao, downloadDao);
+        AdminService adminService = new AdminService(ds, reportDao, assetDao, userDao);
 
         // ── Auth ──────────────────────────────────────────────────────
         registry.put("auth.signup.GET",  new SignupFormAction());
@@ -125,6 +131,14 @@ public class FrontController extends HttpServlet {
         // ── Chat / AI agent (Phase 4) ─────────────────────────────────
         registry.put("chat.page.GET",       new ChatPageAction());
         registry.put("chat.recommend.POST", new RecommendAction(recommendService));
+
+        // ── Mypage (Phase 5) ──────────────────────────────────────────
+        registry.put("mypage.index.GET",    new IndexAction(assetDao, orderDao, downloadDao));
+
+        // ── Admin (Phase 5) ───────────────────────────────────────────
+        registry.put("admin.reports.GET",        new ReportsAction(adminService));
+        registry.put("admin.report.resolve.POST", new ResolveReportAction(adminService));
+        registry.put("admin.user.ban.POST",       new BanUserAction(adminService));
 
         log.info("FrontController initialised with {} actions (LLM enabled={})",
             registry.size(), llmConfig.enabled());
@@ -171,6 +185,11 @@ public class FrontController extends HttpServlet {
     /**
      * Extracts {@code "module.action"} from path-info like {@code "/auth/login"}.
      * Returns null on a malformed or empty path.
+     *
+     * <p>The action portion may contain additional slashes, which are folded
+     * into dots — e.g. {@code "/admin/report/resolve"} → {@code "admin.report.resolve"}.
+     * This keeps the routing table flat while letting the URL surface stay
+     * grouped (admin actions live under {@code /app/admin/...}).
      */
     static String parseActionKey(String pathInfo) {
         if (pathInfo == null || pathInfo.isEmpty()) return null;
@@ -184,8 +203,15 @@ public class FrontController extends HttpServlet {
         String module = s.substring(0, slash);
         String action = s.substring(slash + 1);
         if (module.isEmpty() || action.isEmpty()) return null;
-        // Disallow nested segments — keep the surface flat.
-        if (action.indexOf('/') >= 0) return null;
+        // Empty segment guard — reject any "//" anywhere or leading/trailing /.
+        if (action.startsWith("/") || action.endsWith("/")
+                || action.contains("//")) {
+            return null;
+        }
+        // Fold remaining segments into dotted action names.
+        if (action.indexOf('/') >= 0) {
+            action = action.replace('/', '.');
+        }
         return module + "." + action;
     }
 

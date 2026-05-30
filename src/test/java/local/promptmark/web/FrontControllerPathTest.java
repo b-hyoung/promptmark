@@ -31,7 +31,14 @@ class FrontControllerPathTest {
     }
 
     @Test
-    void nested_segments_rejected() {
-        assertThat(FrontController.parseActionKey("/admin/users/ban")).isNull();
+    void nested_segments_are_folded_into_dots() {
+        assertThat(FrontController.parseActionKey("/admin/users/ban")).isEqualTo("admin.users.ban");
+        assertThat(FrontController.parseActionKey("/admin/report/resolve"))
+            .isEqualTo("admin.report.resolve");
+    }
+
+    @Test
+    void empty_nested_segments_are_rejected() {
+        assertThat(FrontController.parseActionKey("/admin//ban")).isNull();
     }
 }

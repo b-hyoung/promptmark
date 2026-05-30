@@ -25,9 +25,21 @@ class AuthMapTest {
 
     @Test
     void unmapped_actions_default_to_user() {
-        assertThat(AuthMap.required("mypage.index")).isEqualTo(Role.USER);
-        assertThat(AuthMap.required("admin.reports")).isEqualTo(Role.USER);
+        assertThat(AuthMap.required("future.unmapped")).isEqualTo(Role.USER);
+        assertThat(AuthMap.required("anything.unknown")).isEqualTo(Role.USER);
         assertThat(AuthMap.isAnonymous("anything.unknown")).isFalse();
+    }
+
+    @Test
+    void mypage_requires_user() {
+        assertThat(AuthMap.required("mypage.index")).isEqualTo(Role.USER);
+    }
+
+    @Test
+    void admin_endpoints_require_admin() {
+        assertThat(AuthMap.required("admin.reports")).isEqualTo(Role.ADMIN);
+        assertThat(AuthMap.required("admin.report.resolve")).isEqualTo(Role.ADMIN);
+        assertThat(AuthMap.required("admin.user.ban")).isEqualTo(Role.ADMIN);
     }
 
     @Test

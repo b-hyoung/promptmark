@@ -44,6 +44,14 @@ public final class AuthMap {
         m.put("order.complete", Role.USER);
         m.put("order.history",  Role.USER);
 
+        // ── Mypage (Phase 5) ──────────────────────────────────────────
+        m.put("mypage.index",   Role.USER);
+
+        // ── Admin (Phase 5) ───────────────────────────────────────────
+        m.put("admin.reports",        Role.ADMIN);
+        m.put("admin.report.resolve", Role.ADMIN);
+        m.put("admin.user.ban",       Role.ADMIN);
+
         REQUIRED = Collections.unmodifiableMap(m);
     }
 

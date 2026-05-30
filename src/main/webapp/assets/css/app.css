@@ -1,0 +1,19 @@
+/* promptmark base styles — Phase 2 placeholder. */
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #1a1a1a; }
+.container { max-width: 960px; margin: 0 auto; padding: 1rem; }
+.topbar { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid #e5e5e5; background: #fafafa; }
+.topbar .brand { font-weight: 700; text-decoration: none; color: inherit; }
+.topbar .nav-links { list-style: none; display: flex; gap: 1rem; margin: 0; padding: 0; flex: 1; }
+.topbar .nav-links li.user { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; }
+.topbar a { color: #1a1a1a; text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+.inline { display: inline; }
+.auth-form { max-width: 420px; }
+.auth-form .field { margin-bottom: 0.75rem; display: flex; flex-direction: column; }
+.auth-form input, .auth-form select { padding: 0.5rem; font-size: 1rem; }
+.auth-form button { padding: 0.6rem 1rem; font-size: 1rem; cursor: pointer; }
+.field-error { color: #c0392b; }
+.form-error { color: #c0392b; background: #fdecea; padding: 0.5rem 0.75rem; border-radius: 4px; }
+.form-notice { color: #196f3d; background: #e8f8f0; padding: 0.5rem 0.75rem; border-radius: 4px; }
+.error-page { padding: 2rem 0; }
+.error-page .trace { color: #888; font-size: 0.9rem; }

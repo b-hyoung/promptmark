@@ -2,14 +2,28 @@ package local.promptmark.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import javax.sql.DataSource;
 
+import local.promptmark.dto.AssetStatus;
+import local.promptmark.dto.AssetType;
+import local.promptmark.dto.ReportRow;
+
 /**
- * Insert-only DAO for {@code reports}. Admin queue read APIs live in Phase 5.
+ * SQL access to {@code reports}. Phase 3 left this insert-only; Phase 5 adds
+ * the admin queue read APIs and the resolve / reject update path.
  */
 public class ReportDao {
+
+    /** Allowed transitions through this DAO. */
+    static final String STATUS_RESOLVED = "RESOLVED";
+    static final String STATUS_REJECTED = "REJECTED";
 
     private final DataSource ds;
 
@@ -27,6 +41,89 @@ public class ReportDao {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("insert report failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Open reports for the admin queue, joined with assets + users so the JSP
+     * can render context. Most recent first.
+     */
+    public List<ReportRow> findOpen(int limit) {
+        int safeLimit = Math.max(1, limit);
+        String sql =
+            "SELECT r.id AS report_id, r.reason, r.created_at AS reported_at, " +
+            "       a.id AS asset_id, a.title AS asset_title, a.type AS asset_type, " +
+            "       a.status AS asset_status, " +
+            "       u.id AS reporter_id, u.nickname AS reporter_nickname " +
+            "FROM reports r " +
+            "JOIN assets a ON a.id = r.asset_id " +
+            "JOIN users  u ON u.id = r.reporter_id " +
+            "WHERE r.status = 'OPEN' " +
+            "ORDER BY r.created_at DESC, r.id DESC LIMIT ?";
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, safeLimit);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<ReportRow> out = new ArrayList<>();
+                while (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("reported_at");
+                    out.add(new ReportRow(
+                        rs.getLong("report_id"),
+                        rs.getString("reason"),
+                        ts == null ? null : ts.toInstant(),
+                        rs.getLong("asset_id"),
+                        rs.getString("asset_title"),
+                        AssetType.fromDb(rs.getString("asset_type")),
+                        AssetStatus.fromDb(rs.getString("asset_status")),
+                        rs.getLong("reporter_id"),
+                        rs.getString("reporter_nickname")
+                    ));
+                }
+                return out;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findOpen failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Transition a report from OPEN to either RESOLVED or REJECTED. Participates
+     * in the caller's transaction (mirrors {@code OrderDao.insertOrderItem}
+     * conventions).
+     *
+     * @throws IllegalArgumentException when {@code newStatus} is not RESOLVED or REJECTED
+     */
+    public void resolve(long reportId, String newStatus, Connection conn) {
+        if (newStatus == null
+                || (!STATUS_RESOLVED.equals(newStatus) && !STATUS_REJECTED.equals(newStatus))) {
+            throw new IllegalArgumentException(
+                "newStatus must be RESOLVED or REJECTED, got: " + newStatus);
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE reports SET status = ? WHERE id = ? AND status = 'OPEN'")) {
+            ps.setString(1, newStatus);
+            ps.setLong(2, reportId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("resolve report failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Look up the reported asset id without pulling the full row. Used by the
+     * resolve flow before flipping {@code assets.status}.
+     */
+    public Optional<Long> findAssetId(long reportId) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                 "SELECT asset_id FROM reports WHERE id = ?")) {
+            ps.setLong(1, reportId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(rs.getLong(1));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findAssetId failed: " + e.getMessage(), e);
         }
     }
 }

@@ -14,14 +14,37 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import local.promptmark.config.DataSourceProvider;
+import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.DownloadDao;
+import local.promptmark.dao.OrderDao;
+import local.promptmark.dao.ReportDao;
+import local.promptmark.dao.TagDao;
 import local.promptmark.dao.UserDao;
+import local.promptmark.service.AssetService;
 import local.promptmark.service.AuthService;
-import local.promptmark.web.action.asset.PlaceholderAction;
+import local.promptmark.service.DownloadService;
+import local.promptmark.service.OrderService;
+import local.promptmark.web.action.asset.CreateAction;
+import local.promptmark.web.action.asset.CreateFormAction;
+import local.promptmark.web.action.asset.DeleteAction;
+import local.promptmark.web.action.asset.DetailAction;
+import local.promptmark.web.action.asset.DownloadAction;
+import local.promptmark.web.action.asset.EditAction;
+import local.promptmark.web.action.asset.EditFormAction;
+import local.promptmark.web.action.asset.ListAction;
+import local.promptmark.web.action.asset.ReportAction;
 import local.promptmark.web.action.auth.LoginAction;
 import local.promptmark.web.action.auth.LoginFormAction;
 import local.promptmark.web.action.auth.LogoutAction;
 import local.promptmark.web.action.auth.SignupAction;
 import local.promptmark.web.action.auth.SignupFormAction;
+import local.promptmark.web.action.cart.AddAction;
+import local.promptmark.web.action.cart.RemoveAction;
+import local.promptmark.web.action.cart.ViewAction;
+import local.promptmark.web.action.order.CheckoutFormAction;
+import local.promptmark.web.action.order.CompleteAction;
+import local.promptmark.web.action.order.HistoryAction;
+import local.promptmark.web.action.order.PlaceOrderAction;
 
 /**
  * Single dispatcher behind {@code /app/*}. Parses {@code /{module}/{action}}
@@ -38,19 +61,48 @@ public class FrontController extends HttpServlet {
 
     @Override
     public void init() throws ServletException {
-        UserDao userDao = new UserDao(DataSourceProvider.get());
-        AuthService authService = new AuthService(userDao);
+        javax.sql.DataSource ds = DataSourceProvider.get();
 
+        UserDao userDao = new UserDao(ds);
+        AssetDao assetDao = new AssetDao(ds);
+        TagDao tagDao = new TagDao(ds);
+        OrderDao orderDao = new OrderDao(ds);
+        DownloadDao downloadDao = new DownloadDao(ds);
+        ReportDao reportDao = new ReportDao(ds);
+
+        AuthService authService = new AuthService(userDao);
+        AssetService assetService = new AssetService(ds, assetDao, tagDao);
+        OrderService orderService = new OrderService(ds, assetDao, orderDao);
+        DownloadService downloadService = new DownloadService(ds, assetDao, orderDao, downloadDao);
+
+        // ── Auth ──────────────────────────────────────────────────────
         registry.put("auth.signup.GET",  new SignupFormAction());
         registry.put("auth.signup.POST", new SignupAction(authService));
         registry.put("auth.login.GET",   new LoginFormAction());
         registry.put("auth.login.POST",  new LoginAction(authService));
         registry.put("auth.logout.POST", new LogoutAction());
 
-        // Phase-3 placeholders so AuthMap entries have a target.
-        PlaceholderAction placeholder = new PlaceholderAction();
-        registry.put("asset.list.GET",   placeholder);
-        registry.put("asset.detail.GET", placeholder);
+        // ── Asset ─────────────────────────────────────────────────────
+        registry.put("asset.list.GET",     new ListAction(assetService));
+        registry.put("asset.detail.GET",   new DetailAction(assetService, tagDao, userDao));
+        registry.put("asset.new.GET",      new CreateFormAction(tagDao));
+        registry.put("asset.new.POST",     new CreateAction(assetService, tagDao));
+        registry.put("asset.edit.GET",     new EditFormAction(assetService, tagDao));
+        registry.put("asset.edit.POST",    new EditAction(assetService, tagDao));
+        registry.put("asset.delete.POST",  new DeleteAction(assetService));
+        registry.put("asset.download.GET", new DownloadAction(downloadService));
+        registry.put("asset.report.POST",  new ReportAction(reportDao));
+
+        // ── Cart ──────────────────────────────────────────────────────
+        registry.put("cart.add.POST",    new AddAction(assetDao, orderDao));
+        registry.put("cart.view.GET",    new ViewAction());
+        registry.put("cart.remove.POST", new RemoveAction());
+
+        // ── Order ─────────────────────────────────────────────────────
+        registry.put("order.checkout.GET",  new CheckoutFormAction());
+        registry.put("order.checkout.POST", new PlaceOrderAction(orderService));
+        registry.put("order.complete.GET",  new CompleteAction(orderService));
+        registry.put("order.history.GET",   new HistoryAction(orderService));
 
         log.info("FrontController initialised with {} actions", registry.size());
     }

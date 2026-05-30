@@ -21,9 +21,24 @@ public final class AuthMap {
         m.put("auth.login",    Role.ANONYMOUS);
         m.put("auth.logout",   Role.USER);
 
-        // ── Public catalogue (placeholders until Phase 3) ─────────────
-        m.put("asset.list",    Role.ANONYMOUS);
-        m.put("asset.detail",  Role.ANONYMOUS);
+        // ── Public catalogue ──────────────────────────────────────────
+        m.put("asset.list",     Role.ANONYMOUS);
+        m.put("asset.detail",   Role.ANONYMOUS);
+
+        // ── Seller CRUD ───────────────────────────────────────────────
+        m.put("asset.new",      Role.SELLER);
+        m.put("asset.edit",     Role.SELLER);
+        m.put("asset.delete",   Role.SELLER);
+
+        // ── Logged-in interactions ────────────────────────────────────
+        m.put("asset.download", Role.USER);
+        m.put("asset.report",   Role.USER);
+        m.put("cart.add",       Role.USER);
+        m.put("cart.view",      Role.USER);
+        m.put("cart.remove",    Role.USER);
+        m.put("order.checkout", Role.USER);
+        m.put("order.complete", Role.USER);
+        m.put("order.history",  Role.USER);
 
         REQUIRED = Collections.unmodifiableMap(m);
     }

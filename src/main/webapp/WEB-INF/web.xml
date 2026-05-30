@@ -7,14 +7,42 @@
 
   <display-name>promptmark</display-name>
 
+  <!-- Filters run in declaration order on matching url-patterns. -->
   <filter>
     <filter-name>traceIdFilter</filter-name>
     <filter-class>local.promptmark.web.TraceIdFilter</filter-class>
   </filter>
+  <filter>
+    <filter-name>authFilter</filter-name>
+    <filter-class>local.promptmark.web.AuthFilter</filter-class>
+  </filter>
+  <filter>
+    <filter-name>csrfFilter</filter-name>
+    <filter-class>local.promptmark.web.CsrfFilter</filter-class>
+  </filter>
+
   <filter-mapping>
     <filter-name>traceIdFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
+  <filter-mapping>
+    <filter-name>authFilter</filter-name>
+    <url-pattern>/app/*</url-pattern>
+  </filter-mapping>
+  <filter-mapping>
+    <filter-name>csrfFilter</filter-name>
+    <url-pattern>/app/*</url-pattern>
+  </filter-mapping>
+
+  <servlet>
+    <servlet-name>frontController</servlet-name>
+    <servlet-class>local.promptmark.web.FrontController</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>frontController</servlet-name>
+    <url-pattern>/app/*</url-pattern>
+  </servlet-mapping>
 
   <session-config>
     <session-timeout>60</session-timeout>
@@ -22,6 +50,27 @@
       <http-only>true</http-only>
     </cookie-config>
   </session-config>
+
+  <error-page>
+    <error-code>401</error-code>
+    <location>/WEB-INF/view/error/401.jsp</location>
+  </error-page>
+  <error-page>
+    <error-code>403</error-code>
+    <location>/WEB-INF/view/error/403.jsp</location>
+  </error-page>
+  <error-page>
+    <error-code>404</error-code>
+    <location>/WEB-INF/view/error/404.jsp</location>
+  </error-page>
+  <error-page>
+    <error-code>500</error-code>
+    <location>/WEB-INF/view/error/500.jsp</location>
+  </error-page>
+  <error-page>
+    <exception-type>java.lang.Throwable</exception-type>
+    <location>/WEB-INF/view/error/500.jsp</location>
+  </error-page>
 
   <welcome-file-list>
     <welcome-file>index.jsp</welcome-file>

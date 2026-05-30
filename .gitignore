@@ -42,3 +42,7 @@ Thumbs.db
 node_modules/
 *.tmp
 *.swp
+
+# --- Uploads (tracked .gitkeep only) ---
+uploads/
+!uploads/.gitkeep

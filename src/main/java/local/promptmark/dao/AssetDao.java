@@ -1,5 +1,6 @@
 package local.promptmark.dao;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,12 +10,16 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sql.DataSource;
+
+import com.pgvector.PGvector;
 
 import local.promptmark.dto.Asset;
 import local.promptmark.dto.AssetStatus;
 import local.promptmark.dto.AssetType;
+import local.promptmark.service.llm.AssetCard;
 
 /**
  * SQL-only access to the {@code assets} table.
@@ -283,6 +288,286 @@ public class AssetDao {
         } catch (SQLException e) {
             throw new RuntimeException("findBySellerId failed: " + e.getMessage(), e);
         }
+    }
+
+    // ───── hybrid RAG (Phase 4) ──────────────────────────────────────
+
+    /** Per-JVM latch ensuring we register pgvector's type mapping only once. */
+    private static final AtomicBoolean PGVECTOR_REGISTERED = new AtomicBoolean(false);
+
+    /**
+     * Update the {@code embedding} column for a single asset. Uses the
+     * pgvector-java helper to bind the float[] as a {@code vector} value.
+     *
+     * @throws RuntimeException on any SQL failure (caller is expected to log
+     *                          and continue — embedding is best-effort).
+     */
+    public void updateEmbedding(long assetId, float[] vector) {
+        if (vector == null) {
+            throw new IllegalArgumentException("vector must not be null");
+        }
+        try (Connection c = ds.getConnection()) {
+            ensurePgVectorRegistered(c);
+            try (PreparedStatement ps = c.prepareStatement(
+                    "UPDATE assets SET embedding = ? WHERE id = ?")) {
+                ps.setObject(1, new PGvector(vector));
+                ps.setLong(2, assetId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("updateEmbedding failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Hybrid keyword + vector search for the chat agent.
+     *
+     * <p><b>Implementation choice:</b> we pull a 1st-stage candidate list of
+     * up to 50 PUBLIC rows by keyword match (title/summary ILIKE OR tag exact
+     * match), then re-rank in Java. Combining the keyword score with cosine
+     * similarity (computed in Java against the embedding column) is simpler
+     * and more portable than mixing the pgvector {@code <=>} operator into the
+     * SQL — it also keeps the code path the same when the embedding column is
+     * NULL or when no query vector is supplied.
+     *
+     * <p>The final score is {@code max(keywordScore, vectorScore)} clipped to
+     * [0,1], so a strong keyword match never gets buried by a slightly better
+     * vector match (and vice versa).
+     *
+     * @param keywords     tokenised user query (each token gets wildcards added)
+     * @param queryVector  embedding of the user query, or null to skip vector ranking
+     * @param typeOrNull   optional asset-type filter
+     * @param maxPriceOrNull optional max-price filter (inclusive)
+     * @param limit        max rows in the result (clamped to ≥1)
+     */
+    public List<AssetCard> searchHybrid(String[] keywords,
+                                        float[] queryVector,
+                                        AssetType typeOrNull,
+                                        Integer maxPriceOrNull,
+                                        int limit) {
+        boolean haveKeywords = keywords != null && keywords.length > 0;
+        boolean haveVector = queryVector != null && queryVector.length > 0;
+        if (!haveKeywords && !haveVector) {
+            return new ArrayList<>();
+        }
+        int safeLimit = Math.max(1, limit);
+
+        List<Candidate> candidates = fetchCandidates(keywords, typeOrNull, maxPriceOrNull);
+
+        // Tokenise for downstream scoring (lowercased).
+        String[] lowered = haveKeywords ? toLower(keywords) : new String[0];
+
+        // Score each candidate.
+        for (Candidate cand : candidates) {
+            double keywordScore = keywordScore(lowered, cand.title, cand.summary, cand.tags);
+            double vectorScore = (haveVector && cand.embedding != null)
+                ? cosineSimilarity(queryVector, cand.embedding)
+                : 0.0;
+            cand.score = clipScore(Math.max(keywordScore, vectorScore));
+        }
+        candidates.sort((a, b) -> Double.compare(b.score, a.score));
+
+        List<AssetCard> out = new ArrayList<>();
+        for (int i = 0; i < Math.min(safeLimit, candidates.size()); i++) {
+            Candidate c = candidates.get(i);
+            out.add(new AssetCard(c.id, c.type, c.title, c.summary, c.price,
+                c.score, c.tags, null));
+        }
+        return out;
+    }
+
+    private List<Candidate> fetchCandidates(String[] keywords,
+                                            AssetType typeOrNull,
+                                            Integer maxPriceOrNull) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT a.id, a.type, a.title, a.summary, a.price, a.download_count, ");
+        sb.append("       a.embedding, ");
+        sb.append("       COALESCE(ARRAY_AGG(t.name) FILTER (WHERE t.name IS NOT NULL), ARRAY[]::text[]) AS tag_names ");
+        sb.append("FROM assets a ");
+        sb.append("LEFT JOIN asset_tags at ON at.asset_id = a.id ");
+        sb.append("LEFT JOIN tags t        ON t.id = at.tag_id ");
+        sb.append("WHERE a.status = 'PUBLIC' ");
+
+        List<Object> params = new ArrayList<>();
+        boolean haveKeywords = keywords != null && keywords.length > 0;
+        String[] likes = haveKeywords ? toLikePatterns(keywords) : new String[0];
+
+        if (haveKeywords) {
+            sb.append("AND (a.title ILIKE ANY(?) OR a.summary ILIKE ANY(?) OR t.name = ANY(?)) ");
+            params.add(likes);  // for title
+            params.add(likes);  // for summary
+            params.add(keywords); // for tag exact match
+        }
+        if (typeOrNull != null) {
+            sb.append("AND a.type = ? ");
+            params.add(typeOrNull.name());
+        }
+        if (maxPriceOrNull != null) {
+            sb.append("AND a.price <= ? ");
+            params.add(maxPriceOrNull.intValue());
+        }
+        sb.append("GROUP BY a.id ");
+        sb.append("LIMIT 50");
+
+        try (Connection c = ds.getConnection()) {
+            ensurePgVectorRegistered(c);
+            try (PreparedStatement ps = c.prepareStatement(sb.toString())) {
+                int idx = 1;
+                for (Object p : params) {
+                    if (p instanceof String[]) {
+                        Array arr = c.createArrayOf("text", (String[]) p);
+                        ps.setArray(idx++, arr);
+                    } else {
+                        ps.setObject(idx++, p);
+                    }
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Candidate> out = new ArrayList<>();
+                    while (rs.next()) {
+                        Candidate cand = new Candidate();
+                        cand.id = rs.getLong("id");
+                        cand.type = rs.getString("type");
+                        cand.title = rs.getString("title");
+                        cand.summary = rs.getString("summary");
+                        cand.price = rs.getInt("price");
+                        // embedding column
+                        Object emb = rs.getObject("embedding");
+                        if (emb instanceof PGvector) {
+                            cand.embedding = ((PGvector) emb).toArray();
+                        } else if (emb != null) {
+                            // Fallback path (e.g. JDBC returns the raw string form)
+                            cand.embedding = parseVectorString(emb.toString());
+                        }
+                        Array tagArr = rs.getArray("tag_names");
+                        if (tagArr != null) {
+                            Object raw = tagArr.getArray();
+                            if (raw instanceof Object[]) {
+                                List<String> names = new ArrayList<>();
+                                for (Object o : (Object[]) raw) {
+                                    if (o != null) names.add(o.toString());
+                                }
+                                cand.tags = names;
+                            }
+                        }
+                        out.add(cand);
+                    }
+                    return out;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("searchHybrid candidates failed: " + e.getMessage(), e);
+        }
+    }
+
+    private static String[] toLikePatterns(String[] kws) {
+        String[] out = new String[kws.length];
+        for (int i = 0; i < kws.length; i++) {
+            out[i] = "%" + (kws[i] == null ? "" : kws[i]) + "%";
+        }
+        return out;
+    }
+
+    private static String[] toLower(String[] kws) {
+        String[] out = new String[kws.length];
+        for (int i = 0; i < kws.length; i++) {
+            out[i] = kws[i] == null ? "" : kws[i].toLowerCase();
+        }
+        return out;
+    }
+
+    private static float[] parseVectorString(String s) {
+        // Format like "[0.1,0.2,...]"
+        if (s == null || s.length() < 2) return null;
+        String trimmed = s.trim();
+        if (trimmed.startsWith("[")) trimmed = trimmed.substring(1);
+        if (trimmed.endsWith("]")) trimmed = trimmed.substring(0, trimmed.length() - 1);
+        if (trimmed.isEmpty()) return new float[0];
+        String[] parts = trimmed.split(",");
+        float[] out = new float[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            try {
+                out[i] = Float.parseFloat(parts[i].trim());
+            } catch (NumberFormatException nfe) {
+                return null;
+            }
+        }
+        return out;
+    }
+
+    private static void ensurePgVectorRegistered(Connection c) throws SQLException {
+        if (PGVECTOR_REGISTERED.get()) return;
+        synchronized (PGVECTOR_REGISTERED) {
+            if (PGVECTOR_REGISTERED.get()) return;
+            PGvector.addVectorType(c);
+            PGVECTOR_REGISTERED.set(true);
+        }
+    }
+
+    /**
+     * Pure helper for unit tests — computes the keyword-overlap score for a
+     * single candidate given the user's tokens. Returns a value in [0,1]:
+     * (matched tokens) / (tokens).
+     *
+     * <p>A token "matches" if it occurs (case-insensitive substring) in the
+     * title, the summary, or any tag name. Empty inputs return 0.
+     */
+    public static double keywordScore(String[] loweredTokens,
+                                      String title, String summary, List<String> tags) {
+        if (loweredTokens == null || loweredTokens.length == 0) return 0.0;
+        String t = title == null ? "" : title.toLowerCase();
+        String s = summary == null ? "" : summary.toLowerCase();
+        List<String> lcTags = new ArrayList<>();
+        if (tags != null) {
+            for (String tag : tags) {
+                if (tag != null) lcTags.add(tag.toLowerCase());
+            }
+        }
+        int matched = 0;
+        for (String tok : loweredTokens) {
+            if (tok == null || tok.isEmpty()) continue;
+            boolean hit = t.contains(tok) || s.contains(tok);
+            if (!hit) {
+                for (String tag : lcTags) {
+                    if (tag.contains(tok)) { hit = true; break; }
+                }
+            }
+            if (hit) matched++;
+        }
+        return ((double) matched) / loweredTokens.length;
+    }
+
+    /** Cosine similarity between two vectors. Returns 0 when shapes mismatch. */
+    public static double cosineSimilarity(float[] a, float[] b) {
+        if (a == null || b == null || a.length == 0 || b.length == 0) return 0.0;
+        int n = Math.min(a.length, b.length);
+        double dot = 0, na = 0, nb = 0;
+        for (int i = 0; i < n; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        if (na == 0 || nb == 0) return 0.0;
+        return dot / (Math.sqrt(na) * Math.sqrt(nb));
+    }
+
+    /** Clip a raw score into the [0,1] band used for ranking. */
+    public static double clipScore(double s) {
+        if (Double.isNaN(s) || Double.isInfinite(s)) return 0.0;
+        if (s < 0) return 0.0;
+        if (s > 1) return 1.0;
+        return s;
+    }
+
+    /** Internal candidate carrier used by {@link #searchHybrid}. */
+    private static final class Candidate {
+        long id;
+        String type;
+        String title;
+        String summary;
+        int price;
+        List<String> tags = new ArrayList<>();
+        float[] embedding;
+        double score;
     }
 
     private static void setNullable(PreparedStatement ps, int idx, String value)

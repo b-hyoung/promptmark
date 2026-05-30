@@ -1,0 +1,44 @@
+# --- Environment / Secrets ---
+.env
+.env.local
+.env.*.local
+
+# --- Gradle ---
+.gradle/
+build/
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# --- Logs ---
+logs/
+*.log
+
+# --- IDE: IntelliJ ---
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# --- IDE: Eclipse ---
+bin/
+.classpath
+.project
+.settings/
+.factorypath
+
+# --- IDE: VSCode (per-user only; share workspace settings) ---
+.vscode/launch.json
+.vscode/.cache/
+
+# --- Compiled ---
+*.class
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Misc ---
+node_modules/
+*.tmp
+*.swp

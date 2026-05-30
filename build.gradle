@@ -63,6 +63,8 @@ tasks.named('test', Test) {
 tasks.register('integrationTest', Test) {
     useJUnitPlatform()
     include '**/*IT.class'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
     shouldRunAfter test
 }
 

@@ -21,6 +21,9 @@ public final class DataSourceProvider {
         cfg.setMinimumIdle(env.getInt("DB_POOL_MIN", 2));
         cfg.setConnectionTimeout(env.getInt("DB_TIMEOUT_MS", 5000));
         cfg.setPoolName("promptmark-pool");
+        // Pin every pooled connection's search_path so unqualified table names
+        // resolve inside the promptmark schema (shared DB with other apps).
+        cfg.setConnectionInitSql("SET search_path TO promptmark, public, extensions");
         instance = new HikariDataSource(cfg);
         return instance;
     }

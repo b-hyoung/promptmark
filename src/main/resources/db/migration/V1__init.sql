@@ -1,8 +1,12 @@
 -- promptmark schema v1
 -- Apply once per database. All statements are IF NOT EXISTS / CREATE TABLE so re-runs are safe.
+-- Tables live in the `promptmark` schema to coexist with other apps in the same database.
 
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE SCHEMA IF NOT EXISTS promptmark;
+SET search_path TO promptmark, public, extensions;
 
 CREATE TABLE IF NOT EXISTS users (
   id            BIGSERIAL PRIMARY KEY,

@@ -158,11 +158,7 @@
 
 <c:if test="${not empty bundle.story}">
   <section class="bundle-story">
-    <header class="section-header">
-      <span class="section-label">/ story</span>
-      <h2>왜 이 조합인가</h2>
-    </header>
-    <div class="story-body"><c:out value="${bundle.story}"/></div>
+    <div class="story-body markdown-body">${storyHtml}</div>
   </section>
 </c:if>
 

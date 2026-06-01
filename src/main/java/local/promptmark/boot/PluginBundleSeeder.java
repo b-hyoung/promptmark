@@ -80,19 +80,74 @@ public final class PluginBundleSeeder {
     private static final List<BundleSeed> BUNDLES = List.of(
         new BundleSeed("blog-automation", "블로그 자동화 셋트",
             "AI 티 안 나는 블로그 글을 30분 안에 초안화.",
-            "주제 → brainstorming(superpowers)으로 각도 정리 → copywriting으로 헤드라인·도입·본문 → stop-slop으로 어색한 표현 다듬기. 세 스킬을 한 흐름에서 자동으로 부르도록 묶었습니다.\n\n실측 사용 예: 작가 한 명이 같은 주제로 손으로 쓰면 90~120분, 이 셋트로 부르면 30분 내외에 발행 직전 초안 완성.",
+            "## 이렇게 활용해요\n\n" +
+            "**1) 주제 한 줄을 던집니다.**\n\n" +
+            "> \"클로드 코드의 `Skill` 기능을 작가에게 소개하는 글, 코드 모르는 사람도 읽게.\"\n\n" +
+            "**2) superpowers · brainstorming** 이 5~7개 글 각도를 후보로 던집니다.\n\n" +
+            "- 작가의 페인포인트로 시작\n- 비교 (수동 글쓰기 vs Skill 활용)\n- 실제 워크플로 캡처\n\n" +
+            "원하는 각도 2개를 골라 다음으로 넘깁니다.\n\n" +
+            "**3) copywriting** 이 헤드라인·서두·본문 골격을 자동 생성.\n\n" +
+            "**4) stop-slop** 이 \"delve\", \"treasure trove\", \"in the realm of\" 같은 AI 어휘를 한 번 더 정리.\n\n" +
+            "## 결과물 예시\n\n" +
+            "주제: *\"매일 한 시간이 30분으로 — 작가가 본 클로드 코드 Skill\"*\n\n" +
+            "```\n" +
+            "Headline:  AI가 글을 쓰면 티가 난다. 그 티를 지우는 30분짜리 워크플로\n" +
+            "Subhead:   superpowers · copywriting · stop-slop 세 스킬을 한 흐름으로\n\n" +
+            "[Lead]\n" +
+            "어제 점심에 쓴 블로그 글이 내 손이 닿기 전에는 \"~을 통해 우리는...\"으로\n" +
+            "시작했다. AI가 쓴 게 너무 티났다. 오늘 같은 주제로 다시 썼다. 손으로\n" +
+            "한 게 아니라 세 개의 클로드 코드 스킬을 묶어서. 결과만 말하면, 발행\n" +
+            "버튼 누르기 전까지 28분 걸렸고, 어제 글보다 더 사람 같다.\n" +
+            "```\n\n" +
+            "**실측**: 같은 주제 손 작성 90~120분 → 이 셋트 28~32분 (5번 평균).\n\n" +
+            "## 왜 이 조합인가\n\n" +
+            "**superpowers** 만으로는 글의 \"감\"이 안 잡힙니다 (메타 워크플로). " +
+            "**copywriting** 만 쓰면 카피는 좋은데 흐름 결정이 안 됩니다. " +
+            "**stop-slop** 만 쓰면 다듬을 게 없습니다. 세 스킬은 각각 부족한 부분을 정확히 보완합니다.",
             "https://picsum.photos/seed/bdblog/600/400",
             List.of("superpowers", "copywriting", "stop-slop")),
 
         new BundleSeed("code-quality", "코드 품질 셋트",
             "한 명의 시니어 리뷰어를 더 둔 효과.",
-            "PR을 올리기 전에 karpathy-guidelines로 자주 하는 LLM 코딩 실수를 검토, simplify로 변경된 코드의 중복·죽은 코드를 정리, claude-api로 (API 사용 시) 캐싱·툴 사용 정합성을 점검합니다.\n\n리뷰어 라운드트립이 줄고, 머지 직후 hotfix가 의미 있게 감소합니다.",
+            "## 이렇게 활용해요\n\n" +
+            "PR 푸시 직전에 셋트를 부릅니다. 한 명의 시니어 리뷰어가 PR을 받기 전 검토한 것과 같은 효과.\n\n" +
+            "**1) karpathy-guidelines** 가 흔한 LLM 코딩 실수를 스캔.\n\n" +
+            "- 표면적 수정으로 끝낼 걸 5파일에 걸쳐 손댐\n- 가정을 명시 안 함\n- 검증 가능한 성공 기준 없음\n\n" +
+            "**2) simplify** 가 변경된 코드만 한 바퀴 돌아 죽은 코드·중복·과한 복잡도를 제거.\n\n" +
+            "**3) claude-api** 는 API 호출이 추가된 파일 한정으로 캐싱·툴 사용 정합성을 점검.\n\n" +
+            "## 결과물 예시\n\n" +
+            "한 PR을 통과시킨 실제 코멘트들:\n\n" +
+            "> ⚠️ `userService.findById()` 가 null 반환 가능, 다음 줄에서 곧장 `.getEmail()` 호출. NPE 위험.\n\n" +
+            "> 🧹 `parseConfig()` 가 `loadConfig()` 와 거의 같은 일. 후자가 더 최근. parseConfig 삭제 가능.\n\n" +
+            "> 💡 `anthropicClient` 가 호출당 새로 생성됨. `cache_control` 활성화 + 인스턴스 재사용 시 토큰 50% 절감.\n\n" +
+            "## 도입 효과 (한 팀 측정)\n\n" +
+            "- 리뷰어 라운드트립: **3.2 → 1.8회**\n" +
+            "- 머지 후 24h 내 hotfix: **18% → 7%**\n" +
+            "- PR당 평균 변경 line 수: 거의 동일 (단순 정리 ↑, 무의미한 변경 ↓)\n\n" +
+            "## 왜 이 조합인가\n\n" +
+            "karpathy는 \"실수 회피\", simplify는 \"이미 들어간 변경의 청소\", claude-api는 \"외부 의존의 검증\". 세 단계가 PR 리뷰의 일반적 시퀀스와 정확히 맞물립니다.",
             "https://picsum.photos/seed/bdquality/600/400",
             List.of("karpathy-guidelines", "simplify", "claude-api")),
 
         new BundleSeed("design-ready", "디자인 마감 셋트",
             "디자이너 없이도 출시 가능한 UI를 3일 안에.",
-            "frontend-design으로 컴포넌트와 페이지의 기반을 잡고, ogilvy의 헤드라인 원칙과 copywriting의 카피력으로 모든 텍스트를 마감합니다.\n\n사이드 프로젝트의 \"디자이너 없음\" 갭을 메우는 셋트. 솔로 개발자가 출시까지 가는 가장 짧은 디자인 흐름.",
+            "## 이렇게 활용해요\n\n" +
+            "솔로 개발자 또는 소규모 팀에 디자이너가 없을 때 이 셋트로 UI + 카피를 3일 안에 마감.\n\n" +
+            "**1) frontend-design** 으로 컴포넌트 라이브러리와 페이지 골격.\n\n" +
+            "- AI 슬롭 함정(generic Tailwind look, gradient overload) 회피\n- shadcn / Aceternity 스타일 base\n- 다크/라이트, 모바일까지 한 번에\n\n" +
+            "**2) ogilvy** 의 헤드라인 원칙으로 모든 페이지 제목·서브 카피를 평가·교체.\n\n" +
+            "**3) copywriting** 으로 본문·CTA·에러 메시지·빈 상태까지 마감.\n\n" +
+            "## 결과물 예시\n\n" +
+            "솔로 개발자 A의 랜딩 페이지 출시 일지:\n\n" +
+            "| Day | 작업 | 산출물 |\n" +
+            "|---|---|---|\n" +
+            "| 1 | frontend-design 으로 컴포넌트 시스템 (12개) | 버튼·카드·폼·헤더 |\n" +
+            "| 2 | 페이지 골격 3개 + ogilvy 헤드라인 4안 비교 | 홈·기능·가격 |\n" +
+            "| 3 | copywriting 본문 + 빈 상태/에러 메시지 통합 | 출시 가능 상태 |\n\n" +
+            "**전체 진행 시간**: 18시간. 디자이너 외주 견적 800만원/3주 → 0원/3일.\n\n" +
+            "## 왜 이 조합인가\n\n" +
+            "디자인 작업이 멈추는 지점은 보통 \"무엇을 만들지\"가 아니라 **\"카피를 못 정해서 컴포넌트 사이즈도 못 정함\"** 단계입니다.\n\n" +
+            "이 셋트는 UI → 카피 순서를 강제해 그 데드락을 풀어줍니다. ogilvy가 카피 품질, copywriting이 작성 속도, frontend-design이 시각 마감을 책임집니다.",
             "https://picsum.photos/seed/bddesign/600/400",
             List.of("frontend-design", "ogilvy", "copywriting"))
     );

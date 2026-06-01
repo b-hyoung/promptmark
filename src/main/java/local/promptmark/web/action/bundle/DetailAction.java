@@ -3,6 +3,10 @@ package local.promptmark.web.action.bundle;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.ast.Node;
+
 import local.promptmark.dao.BundleDao;
 import local.promptmark.dto.Bundle;
 import local.promptmark.service.BundleService;
@@ -10,8 +14,11 @@ import local.promptmark.web.Action;
 import local.promptmark.web.NotFoundException;
 import local.promptmark.web.ViewResult;
 
-/** GET /app/bundle/detail?id=N */
+/** GET /app/bundle/detail?id=N — also renders bundle.story markdown into bodyHtml. */
 public class DetailAction implements Action {
+    private static final Parser MD_PARSER = Parser.builder().build();
+    private static final HtmlRenderer MD_RENDERER = HtmlRenderer.builder().build();
+
     private final BundleService bundleService;
     private final BundleDao bundleDao;
 
@@ -26,7 +33,16 @@ public class DetailAction implements Action {
         Bundle b = bundleService.findByIdWithPlugins(id)
             .orElseThrow(() -> new NotFoundException("Bundle not found: " + id));
         bundleDao.incrementViewCount(id);
+
+        // Render story as markdown HTML (safe — only admins author bundles).
+        String storyHtml = "";
+        if (b.getStory() != null && !b.getStory().isEmpty()) {
+            Node doc = MD_PARSER.parse(b.getStory());
+            storyHtml = MD_RENDERER.render(doc);
+        }
+
         req.setAttribute("bundle", b);
+        req.setAttribute("storyHtml", storyHtml);
         return ViewResult.forward("bundle/detail");
     }
 

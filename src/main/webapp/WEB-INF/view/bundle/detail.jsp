@@ -29,6 +29,19 @@
     roles.put("design-ready:frontend-design", "UI 기반");
     roles.put("design-ready:ogilvy",          "헤드라인");
     roles.put("design-ready:copywriting",     "본문 카피");
+    // ad-copy
+    roles.put("ad-copy:ogilvy",      "헤드라인 5~8안");
+    roles.put("ad-copy:copywriting", "본문·CTA");
+    roles.put("ad-copy:stop-slop",   "클리셰 제거");
+    // ai-app-launch
+    roles.put("ai-app-launch:claude-api",      "API 백엔드");
+    roles.put("ai-app-launch:frontend-design", "UI·스트리밍");
+    roles.put("ai-app-launch:simplify",        "출시 직전 정리");
+    // mvp-bootstrap
+    roles.put("mvp-bootstrap:superpowers",         "범위 결정");
+    roles.put("mvp-bootstrap:frontend-design",     "UI 시스템");
+    roles.put("mvp-bootstrap:copywriting",         "카피 통합");
+    roles.put("mvp-bootstrap:karpathy-guidelines", "PR 검토");
     request.setAttribute("pluginRoles", roles);
 %>
 

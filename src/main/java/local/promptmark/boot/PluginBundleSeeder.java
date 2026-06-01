@@ -149,7 +149,85 @@ public final class PluginBundleSeeder {
             "디자인 작업이 멈추는 지점은 보통 \"무엇을 만들지\"가 아니라 **\"카피를 못 정해서 컴포넌트 사이즈도 못 정함\"** 단계입니다.\n\n" +
             "이 셋트는 UI → 카피 순서를 강제해 그 데드락을 풀어줍니다. ogilvy가 카피 품질, copywriting이 작성 속도, frontend-design이 시각 마감을 책임집니다.",
             "https://picsum.photos/seed/bddesign/600/400",
-            List.of("frontend-design", "ogilvy", "copywriting"))
+            List.of("frontend-design", "ogilvy", "copywriting")),
+
+        new BundleSeed("ad-copy", "광고 카피 셋트",
+            "전환율을 끌어올리는 페이드 광고·랜딩 카피.",
+            "## 이렇게 활용해요\n\n" +
+            "광고 운영자/마케터가 광고 카피와 랜딩 페이지의 카피를 한 흐름으로 빠르게 만들고 다듬을 때.\n\n" +
+            "**1) ogilvy** 가 헤드라인 5~8안을 생성합니다.\n\n" +
+            "- 약속(promise) 기반 ('당신은 X를 얻는다')\n- 숫자 기반 ('30일 안에 X')\n- 부정 기반 ('X 없이 살 수 없는 이유')\n- 호기심 기반 ('아무도 알려주지 않은 X')\n\n" +
+            "**2) copywriting** 이 그중 2~3안을 풀어서 본문 + CTA + sub-headline 까지 작성.\n\n" +
+            "**3) stop-slop** 이 광고 카피에서 흔한 \"혁신적인\", \"맞춤형 솔루션\", \"패러다임\" 같은 마케팅 클리셰를 잡아냅니다.\n\n" +
+            "## 결과물 예시\n\n" +
+            "B2B SaaS \"인보이스 자동화\" 광고 한 세트:\n\n" +
+            "```\n" +
+            "Headline (A):  매달 14시간을 인보이스에 쓰는 회계 담당자에게\n" +
+            "               이 도구를 보여주면 30분 안에 도입을 결정합니다.\n\n" +
+            "Headline (B):  300개 거래처가 있어도 이번 달 마감은 19분이면 끝.\n\n" +
+            "Headline (C):  '엑셀 함수로 어떻게든 되겠지' — 그 어떻게든이\n" +
+            "               매달 14시간을 잡아먹습니다.\n\n" +
+            "CTA:           14시간 → 19분, 직접 확인하기 (가입 30초)\n" +
+            "Sub-CTA:       신용카드 필요 없음 · 14일 무료\n" +
+            "```\n\n" +
+            "**A/B/C 테스트 결과**: 광고 CTR A 2.1% / B 3.4% / C **4.8%**. C로 전환.\n\n" +
+            "## 왜 이 조합인가\n\n" +
+            "ogilvy가 약속과 헤드라인의 \"각도\"를, copywriting이 본문의 \"속도\"를, stop-slop이 클리셰 제거의 \"마감\"을 담당합니다. 광고 카피는 헤드라인 70~80% 영향이라 ogilvy를 가장 먼저 부르는 게 정석.",
+            "https://picsum.photos/seed/bdad/600/400",
+            List.of("ogilvy", "copywriting", "stop-slop")),
+
+        new BundleSeed("ai-app-launch", "Claude API 앱 출시 셋트",
+            "Claude API 기반 사이드 프로젝트를 일주일 안에.",
+            "## 이렇게 활용해요\n\n" +
+            "Claude API를 사용하는 작은 SaaS / 도구 / 봇을 만들고 싶을 때.\n\n" +
+            "**1) claude-api** 가 백엔드의 골격을 잡습니다.\n\n" +
+            "- 호출 패턴 (prompt caching, streaming, tool use)\n- 비용 절감 (`cache_control` + batch)\n- 모델 선택 (Opus / Sonnet / Haiku 어떤 작업에 어떤 모델)\n\n" +
+            "**2) frontend-design** 으로 채팅/입력/결과 UI를 만듭니다.\n\n" +
+            "- 스트리밍 텍스트 표시 컴포넌트\n- 에러/타임아웃/캐시 히트 상태 UI\n- 모바일 키보드 친화\n\n" +
+            "**3) simplify** 가 출시 직전 코드를 한 바퀴 돌아 죽은 코드/중복/누락 에러 처리 정리.\n\n" +
+            "## 결과물 예시\n\n" +
+            "\"기술 인터뷰 질문 생성기\" 사이드 프로젝트 7일 일정:\n\n" +
+            "| Day | 작업 | 누가 | 산출물 |\n" +
+            "|---|---|---|---|\n" +
+            "| 1-2 | API 호출 + 캐싱 + 비용 모델링 | claude-api | 백엔드 동작 |\n" +
+            "| 3-4 | 입력 폼 + 스트리밍 결과 화면 | frontend-design | UI 완성 |\n" +
+            "| 5 | 에러/빈 상태/loading 통합 | frontend-design | edge case |\n" +
+            "| 6 | 코드 정리 + 죽은 코드 제거 | simplify | PR 12 파일 정리 |\n" +
+            "| 7 | 배포 + 베타 사용자 10명 | — | 가입 폼 |\n\n" +
+            "**비용**: cache_control 활성으로 인터뷰 1세션당 토큰 비용 **$0.43 → $0.12** (72% 절감).\n\n" +
+            "## 왜 이 조합인가\n\n" +
+            "Claude API 앱의 흔한 함정은 \"호출은 돌지만 UI가 못 따라가는 것\" (스트리밍 처리, 빈 상태, 에러). claude-api 단독으로는 풀 수 없습니다. UI를 동시에 만들어주는 frontend-design + 출시 직전 코드 정리해주는 simplify 가 빠진 부분을 채웁니다.",
+            "https://picsum.photos/seed/bdaiapp/600/400",
+            List.of("claude-api", "frontend-design", "simplify")),
+
+        new BundleSeed("mvp-bootstrap", "MVP 부트스트랩 셋트",
+            "솔로 개발자가 7일 안에 MVP를 출시하는 가장 짧은 길.",
+            "## 이렇게 활용해요\n\n" +
+            "혼자 사이드 프로젝트를 시작할 때 가장 흔한 막힘 지점:\n\n" +
+            "1. **무엇을 만들지** 결정 못 함 → superpowers · brainstorming\n" +
+            "2. **UI를 어떻게** 만들지 → frontend-design\n" +
+            "3. **카피/메시지** 못 정함 → copywriting\n" +
+            "4. **PR 직전 실수** → karpathy-guidelines\n\n" +
+            "이 셋트는 그 네 막힘을 모두 풀어줍니다.\n\n" +
+            "**1) superpowers · brainstorming** 으로 MVP 범위 결정.\n\n" +
+            "> \"3일 내 출시 가능한 가장 작은 기능은?\" → 후보 3개 → YAGNI 가드로 1개 선정\n\n" +
+            "**2) frontend-design** 으로 1-3개 핵심 화면 컴포넌트 시스템.\n\n" +
+            "**3) copywriting** 으로 모든 페이지 카피 (헤드라인부터 에러 메시지까지).\n\n" +
+            "**4) karpathy-guidelines** 가 PR마다 흔한 LLM 실수 검토.\n\n" +
+            "## 결과물 예시\n\n" +
+            "\"한 줄 회고\" 트래커 MVP 7일 일정:\n\n" +
+            "| Day | 작업 | 산출물 |\n" +
+            "|---|---|---|\n" +
+            "| 1 | 범위 결정 (brainstorming) | \"매일 한 줄 + 주간 회고 자동 요약\" |\n" +
+            "| 2-3 | UI 컴포넌트 (frontend-design) | 입력·리스트·요약 카드 |\n" +
+            "| 4 | 카피 (copywriting) | 빈 상태부터 가입 폼까지 |\n" +
+            "| 5-6 | 백엔드 + API + karpathy 검토 | 머지 가능한 PR |\n" +
+            "| 7 | 배포 + Product Hunt | 첫 사용자 47명 |\n\n" +
+            "**총 코딩 시간**: 약 28시간. 비슷한 MVP 평균(120시간) 대비 **23%**.\n\n" +
+            "## 왜 이 조합인가\n\n" +
+            "MVP가 출시까지 못 가는 가장 흔한 이유는 \"기능 결정 / 디자인 / 카피 / 코드 품질\" 네 단계 중 한 곳에서 멈추기 때문입니다. 보통 셋 중 하나는 잘 하지만 나머지에서 멈춤. 네 스킬을 묶어서 어느 단계에서도 멈추지 않게 합니다.",
+            "https://picsum.photos/seed/bdmvp/600/400",
+            List.of("superpowers", "frontend-design", "copywriting", "karpathy-guidelines"))
     );
 
     public static void seed(DataSource ds, String adminEmail) {

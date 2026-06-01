@@ -1,3 +1,4 @@
+<%@ page pageEncoding="UTF-8" %>
 <%-- Bundle thumbnail mockup. Renders a CSS-only "result preview" based on b.thumbnail key. --%>
 <%-- Keys: mock:blog, mock:code, mock:design, mock:ad, mock:aiapp, mock:mvp --%>
 <c:set var="mockKey" value="${fn:substringAfter(b.thumbnail, 'mock:')}"/>

@@ -54,6 +54,8 @@ public final class SchemaApplier {
     }
 
     // Splits on ';' that ends a statement. Strips full-line `--` comments only.
+    // Aware of PostgreSQL dollar-quoted string blocks ($$ ... $$, $tag$ ... $tag$):
+    // a ';' inside a dollar-quoted block does not end a statement.
     private static List<String> splitStatements(String sql) {
         List<String> out = new ArrayList<>();
         StringBuilder cur = new StringBuilder();
@@ -61,17 +63,46 @@ public final class SchemaApplier {
             String line = rawLine.trim();
             if (line.startsWith("--") || line.isEmpty()) continue;
             cur.append(rawLine).append('\n');
-            if (rawLine.trim().endsWith(";")) {
-                String stmt = cur.toString().trim();
-                if (stmt.endsWith(";")) stmt = stmt.substring(0, stmt.length() - 1);
-                out.add(stmt.trim());
-                cur.setLength(0);
-            }
+
+            String accum = cur.toString();
+            if (!endsStatement(accum)) continue;
+
+            String stmt = accum.trim();
+            if (stmt.endsWith(";")) stmt = stmt.substring(0, stmt.length() - 1);
+            out.add(stmt.trim());
+            cur.setLength(0);
         }
         if (cur.length() > 0) {
             String last = cur.toString().trim();
             if (!last.isEmpty()) out.add(last);
         }
         return out;
+    }
+
+    /** True when the accumulated text ends with a top-level ';' (i.e. not inside a $$ block). */
+    private static boolean endsStatement(String s) {
+        String trimmed = s.trim();
+        if (!trimmed.endsWith(";")) return false;
+        // Scan to confirm we are not inside an open dollar-quoted block.
+        boolean inDollar = false;
+        String dollarTag = null;
+        int i = 0;
+        while (i < trimmed.length()) {
+            char c = trimmed.charAt(i);
+            if (c == '$') {
+                // Read optional tag word until next '$'
+                int end = trimmed.indexOf('$', i + 1);
+                if (end < 0) break;
+                String tag = trimmed.substring(i + 1, end);
+                if (tag.matches("[A-Za-z_][A-Za-z0-9_]*|")) {
+                    if (!inDollar) { inDollar = true; dollarTag = tag; }
+                    else if (tag.equals(dollarTag)) { inDollar = false; dollarTag = null; }
+                    i = end + 1;
+                    continue;
+                }
+            }
+            i++;
+        }
+        return !inDollar;
     }
 }

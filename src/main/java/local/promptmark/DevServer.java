@@ -7,6 +7,7 @@ import java.net.ServerSocket;
 import javax.sql.DataSource;
 
 import local.promptmark.boot.AdminSeeder;
+import local.promptmark.boot.PluginBundleSeeder;
 import local.promptmark.boot.SchemaApplier;
 import local.promptmark.config.DataSourceProvider;
 import local.promptmark.config.Env;
@@ -31,6 +32,7 @@ public final class DevServer {
         AdminSeeder.seed(ds,
             env.getOrDefault("ADMIN_EMAIL", ""),
             env.getOrDefault("ADMIN_PWD", ""));
+        PluginBundleSeeder.seed(ds, env.getOrDefault("ADMIN_EMAIL", ""));
 
         int requestedPort = env.getInt("PORT", 8080);
         int port = findAvailablePort(requestedPort);

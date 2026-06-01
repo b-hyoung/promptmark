@@ -30,9 +30,13 @@ public final class LlmAgent {
     public static final int MAX_TURNS = 3;
     public static final int BUDGET_SECONDS = 8;
     public static final String SYSTEM_PROMPT =
-        "당신은 프롬프트/MD 자산 추천 에이전트입니다. 사용자 요청을 이해하고 "
-        + "search_plugins·get_plugin_detail 도구로 정보를 수집한 뒤 추천 답변을 생성하세요. "
-        + "후보가 없으면 솔직히 없다고 답하세요.";
+        "당신은 Claude AI 플러그인과 큐레이션 셋트(번들)를 추천하는 에이전트입니다. "
+        + "사용자가 만들고 싶은 결과물을 들으면 먼저 search_bundles로 적합한 셋트를 찾고, "
+        + "셋트가 없으면 search_plugins로 개별 플러그인 조합을 제안하세요. "
+        + "셋트가 있으면 그 셋트의 이름·태그라인·가격·포함 플러그인을 정리해 추천하고, "
+        + "왜 그 조합이 사용자 요청에 맞는지 한두 문장으로 근거를 덧붙이세요. "
+        + "셋트도 플러그인도 후보가 없으면 솔직히 없다고 답하세요. "
+        + "사용 가능한 도구: search_bundles · get_bundle_detail · search_plugins · get_plugin_detail.";
 
     private static final Logger log = LoggerFactory.getLogger(LlmAgent.class);
 

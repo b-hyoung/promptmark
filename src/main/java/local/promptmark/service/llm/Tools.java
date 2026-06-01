@@ -13,9 +13,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import local.promptmark.dao.BundleDao;
 import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.TagDao;
 import local.promptmark.dao.UserDao;
+import local.promptmark.dto.Bundle;
 import local.promptmark.dto.Plugin;
 import local.promptmark.dto.PluginStatus;
 import local.promptmark.dto.PluginType;
@@ -35,21 +37,31 @@ public final class Tools {
 
     public static final String TOOL_SEARCH_PLUGINS = "search_plugins";
     public static final String TOOL_GET_PLUGIN_DETAIL = "get_plugin_detail";
+    public static final String TOOL_SEARCH_BUNDLES = "search_bundles";
+    public static final String TOOL_GET_BUNDLE_DETAIL = "get_bundle_detail";
 
     private static final int DEFAULT_LIMIT = 10;
     private static final int MAX_LIMIT = 20;
     private static final int BODY_PREVIEW_MAX = 500;
 
     private final PluginDao pluginDao;
+    private final BundleDao bundleDao;     // nullable for backwards-compat constructor
     private final TagDao tagDao;
     @SuppressWarnings("unused")
     private final UserDao userDao;
     private final EmbeddingClient embeddingClient;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /** Backwards-compat constructor — bundle tools disabled. */
     public Tools(PluginDao pluginDao, TagDao tagDao, UserDao userDao,
                  EmbeddingClient embeddingClient) {
+        this(pluginDao, null, tagDao, userDao, embeddingClient);
+    }
+
+    public Tools(PluginDao pluginDao, BundleDao bundleDao, TagDao tagDao, UserDao userDao,
+                 EmbeddingClient embeddingClient) {
         this.pluginDao = pluginDao;
+        this.bundleDao = bundleDao;
         this.tagDao = tagDao;
         this.userDao = userDao;
         this.embeddingClient = embeddingClient;
@@ -73,12 +85,33 @@ public final class Tools {
                 + "\"properties\":{\"id\":{\"type\":\"integer\"}},"
                 + "\"required\":[\"id\"]"
                 + "}");
-            return Arrays.asList(
-                new ToolDef(TOOL_SEARCH_PLUGINS,
-                    "프롬프트/MD 자산 검색. 키워드+벡터 하이브리드.", searchSchema),
-                new ToolDef(TOOL_GET_PLUGIN_DETAIL,
-                    "특정 자산의 본문 미리보기·태그·데모 URL 조회.", detailSchema)
-            );
+            JsonNode bundleSearchSchema = mapper.readTree("{"
+                + "\"type\":\"object\","
+                + "\"properties\":{"
+                +   "\"query\":{\"type\":\"string\"},"
+                +   "\"limit\":{\"type\":\"integer\",\"default\":5,\"maximum\":20}"
+                + "},"
+                + "\"required\":[\"query\"]"
+                + "}");
+            JsonNode bundleDetailSchema = mapper.readTree("{"
+                + "\"type\":\"object\","
+                + "\"properties\":{\"id\":{\"type\":\"integer\"}},"
+                + "\"required\":[\"id\"]"
+                + "}");
+
+            List<ToolDef> defs = new ArrayList<>();
+            // Bundle tools listed first so the model prefers them per system prompt
+            if (bundleDao != null) {
+                defs.add(new ToolDef(TOOL_SEARCH_BUNDLES,
+                    "큐레이션 셋트 검색 (이름·태그라인·스토리 매칭). 먼저 시도하세요.", bundleSearchSchema));
+                defs.add(new ToolDef(TOOL_GET_BUNDLE_DETAIL,
+                    "특정 셋트의 포함 플러그인·가격·스토리 조회.", bundleDetailSchema));
+            }
+            defs.add(new ToolDef(TOOL_SEARCH_PLUGINS,
+                "개별 플러그인 검색 (키워드+벡터 하이브리드). 셋트로 안 맞을 때 사용.", searchSchema));
+            defs.add(new ToolDef(TOOL_GET_PLUGIN_DETAIL,
+                "특정 플러그인의 본문 미리보기·태그·데모 URL 조회.", detailSchema));
+            return defs;
         } catch (Exception e) {
             throw new LlmException("failed to build tool definitions", e);
         }
@@ -88,7 +121,68 @@ public final class Tools {
     public JsonNode dispatch(String name, JsonNode args) {
         if (TOOL_SEARCH_PLUGINS.equals(name)) return searchPlugins(args);
         if (TOOL_GET_PLUGIN_DETAIL.equals(name)) return getPluginDetail(args);
+        if (TOOL_SEARCH_BUNDLES.equals(name)) return searchBundles(args);
+        if (TOOL_GET_BUNDLE_DETAIL.equals(name)) return getBundleDetail(args);
         throw new LlmException("unknown tool: " + name);
+    }
+
+    public JsonNode searchBundles(JsonNode args) {
+        if (bundleDao == null) return mapper.createArrayNode();
+        if (args == null || args.isNull()) args = mapper.createObjectNode();
+        String query = args.path("query").asText("");
+        int limit = DEFAULT_LIMIT;
+        if (args.has("limit") && args.path("limit").isNumber()) {
+            limit = Math.max(1, Math.min(MAX_LIMIT, args.path("limit").asInt(DEFAULT_LIMIT)));
+        }
+
+        // Simple keyword-overlap filter on top of recent list (small catalogue).
+        // For larger catalogues this should use an indexed query or pgvector.
+        List<Bundle> candidates = bundleDao.list("recent", 0, 50);
+        String q = (query == null) ? "" : query.toLowerCase().trim();
+        ArrayNode out = mapper.createArrayNode();
+        int kept = 0;
+        for (Bundle b : candidates) {
+            boolean match = q.isEmpty()
+                || (b.getName() != null && b.getName().toLowerCase().contains(q))
+                || (b.getTagline() != null && b.getTagline().toLowerCase().contains(q))
+                || (b.getStory() != null && b.getStory().toLowerCase().contains(q));
+            if (!match) continue;
+            ObjectNode n = out.addObject();
+            n.put("id", b.getId());
+            n.put("slug", b.getSlug());
+            n.put("name", b.getName());
+            n.put("tagline", b.getTagline());
+            n.put("price", b.getPrice());
+            if (++kept >= limit) break;
+        }
+        return out;
+    }
+
+    public JsonNode getBundleDetail(JsonNode args) {
+        if (bundleDao == null) throw new NotFoundException("셋트를 찾을 수 없습니다");
+        if (args == null || !args.has("id") || !args.path("id").isNumber()) {
+            throw new NotFoundException("id 인자가 필요합니다");
+        }
+        long id = args.path("id").asLong();
+        Optional<Bundle> opt = bundleDao.findByIdWithPlugins(id);
+        if (!opt.isPresent()) throw new NotFoundException("셋트를 찾을 수 없습니다");
+        Bundle b = opt.get();
+        ObjectNode out = mapper.createObjectNode();
+        out.put("id", b.getId());
+        out.put("slug", b.getSlug());
+        out.put("name", b.getName());
+        out.put("tagline", b.getTagline());
+        out.put("story", b.getStory());
+        out.put("price", b.getPrice());
+        ArrayNode pl = out.putArray("plugins");
+        for (Plugin p : b.getPlugins()) {
+            ObjectNode pn = pl.addObject();
+            pn.put("id", p.getId());
+            pn.put("title", p.getTitle());
+            pn.put("summary", p.getSummary());
+            pn.put("price", p.getPrice());
+        }
+        return out;
     }
 
     /**

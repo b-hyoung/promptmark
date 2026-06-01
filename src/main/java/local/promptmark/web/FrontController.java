@@ -91,7 +91,7 @@ public class FrontController extends HttpServlet {
         LlmConfig llmConfig = LlmConfig.fromEnv(Env.load());
         EmbeddingClient embeddingClient = llmConfig.newEmbeddingClient();
         LlmClient llmClient = llmConfig.newLlmClient();
-        Tools tools = new Tools(pluginDao, tagDao, userDao, embeddingClient);
+        Tools tools = new Tools(pluginDao, bundleDao, tagDao, userDao, embeddingClient);
         LlmAgent llmAgent = new LlmAgent(llmClient, embeddingClient, tools, llmConfig);
         RecommendService recommendService = new RecommendService(
             pluginDao, tagDao, embeddingClient, llmAgent, llmConfig);

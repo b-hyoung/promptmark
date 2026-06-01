@@ -3,15 +3,15 @@ package local.promptmark.dto;
 import java.time.Instant;
 
 /**
- * Mutable-via-constructor row mapping for {@code assets}. JavaBean accessors so
+ * Mutable-via-constructor row mapping for {@code plugins}. JavaBean accessors so
  * JSP EL can read it directly; extra {@code getTypeName()}/{@code getStatusName()}
  * give EL a string view of the enum without {@code .name()} syntax.
  */
-public final class Asset {
+public final class Plugin {
 
     private final long id;
     private final long sellerId;
-    private final AssetType type;
+    private final PluginType type;
     private final String title;
     private final String summary;
     private final String body;
@@ -19,15 +19,15 @@ public final class Asset {
     private final String demoUrl;
     private final String videoUrl;
     private final int price;
-    private final AssetStatus status;
+    private final PluginStatus status;
     private final int viewCount;
     private final int downloadCount;
     private final Instant createdAt;
     private final Instant updatedAt;
 
-    public Asset(long id,
+    public Plugin(long id,
                  long sellerId,
-                 AssetType type,
+                 PluginType type,
                  String title,
                  String summary,
                  String body,
@@ -35,7 +35,7 @@ public final class Asset {
                  String demoUrl,
                  String videoUrl,
                  int price,
-                 AssetStatus status,
+                 PluginStatus status,
                  int viewCount,
                  int downloadCount,
                  Instant createdAt,
@@ -59,7 +59,7 @@ public final class Asset {
 
     public long getId() { return id; }
     public long getSellerId() { return sellerId; }
-    public AssetType getType() { return type; }
+    public PluginType getType() { return type; }
     public String getTitle() { return title; }
     public String getSummary() { return summary; }
     public String getBody() { return body; }
@@ -67,14 +67,14 @@ public final class Asset {
     public String getDemoUrl() { return demoUrl; }
     public String getVideoUrl() { return videoUrl; }
     public int getPrice() { return price; }
-    public AssetStatus getStatus() { return status; }
+    public PluginStatus getStatus() { return status; }
     public int getViewCount() { return viewCount; }
     public int getDownloadCount() { return downloadCount; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
-    /** EL-friendly: {@code ${asset.typeName == 'PROMPT'}}. */
+    /** EL-friendly: {@code ${plugin.typeName == 'PROMPT'}}. */
     public String getTypeName() { return type == null ? null : type.name(); }
-    /** EL-friendly: {@code ${asset.statusName == 'PUBLIC'}}. */
+    /** EL-friendly: {@code ${plugin.statusName == 'PUBLIC'}}. */
     public String getStatusName() { return status == null ? null : status.name(); }
 }

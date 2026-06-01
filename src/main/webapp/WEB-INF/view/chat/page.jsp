@@ -24,11 +24,11 @@
   .chat-input button { padding: 0.6rem 1rem; cursor: pointer; }
   .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
                gap: 0.5rem; margin-top: 0.5rem; }
-  .asset-mini-card { border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem 0.75rem;
+  .plugin-mini-card { border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem 0.75rem;
                      background: #fff; }
-  .asset-mini-card a { color: #2f7df5; text-decoration: none; font-weight: 600; }
-  .asset-mini-card .meta { font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
-  .asset-mini-card .summary { font-size: 0.85rem; margin-top: 0.25rem; color: #333; }
+  .plugin-mini-card a { color: #2f7df5; text-decoration: none; font-weight: 600; }
+  .plugin-mini-card .meta { font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
+  .plugin-mini-card .summary { font-size: 0.85rem; margin-top: 0.25rem; color: #333; }
   .trace-toggle { font-size: 0.85rem; color: #666; cursor: pointer; margin-top: 0.5rem; }
   .trace-block { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.75rem;
                  background: #f1f1f1; padding: 0.5rem; border-radius: 6px;
@@ -157,9 +157,9 @@
 
   function renderCard(item) {
     var card = document.createElement("div");
-    card.className = "asset-mini-card";
+    card.className = "plugin-mini-card";
     var titleLink = document.createElement("a");
-    titleLink.href = CTX + "/app/asset/detail?id=" + encodeURIComponent(item.id);
+    titleLink.href = CTX + "/app/plugin/detail?id=" + encodeURIComponent(item.id);
     titleLink.textContent = item.title || "(제목 없음)";
     card.appendChild(titleLink);
     var meta = document.createElement("div");

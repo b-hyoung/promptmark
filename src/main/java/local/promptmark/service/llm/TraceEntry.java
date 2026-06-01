@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * Audit entry for one tool dispatch within the ReAct loop. Surfaced in
  * {@link AgentResult#trace()} so the UI can show the "agent thinking" panel.
- * {@link #hits()} is the number of results when applicable (search_assets),
+ * {@link #hits()} is the number of results when applicable (search_plugins),
  * null otherwise.
  */
 public final class TraceEntry {

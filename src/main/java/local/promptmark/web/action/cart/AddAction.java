@@ -5,10 +5,10 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.OrderDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
 import local.promptmark.dto.CartItem;
 import local.promptmark.dto.LoginUser;
 import local.promptmark.web.Action;
@@ -18,28 +18,28 @@ import local.promptmark.web.NotFoundException;
 import local.promptmark.web.ViewResult;
 
 /**
- * POST {@code /app/cart/add?assetId=N}. Re-validates against the live row so
- * a HIDDEN/DELETED/own/already-bought asset can't slip into the cart.
+ * POST {@code /app/cart/add?pluginId=N}. Re-validates against the live row so
+ * a HIDDEN/DELETED/own/already-bought plugin can't slip into the cart.
  */
 public class AddAction implements Action {
 
-    private final AssetDao assetDao;
+    private final PluginDao pluginDao;
     private final OrderDao orderDao;
 
-    public AddAction(AssetDao assetDao, OrderDao orderDao) {
-        this.assetDao = assetDao;
+    public AddAction(PluginDao pluginDao, OrderDao orderDao) {
+        this.pluginDao = pluginDao;
         this.orderDao = orderDao;
     }
 
     @Override
     public ViewResult execute(HttpServletRequest req, HttpServletResponse res) {
         LoginUser me = (LoginUser) req.getSession().getAttribute(AuthFilter.LOGIN_USER_ATTR);
-        long assetId = parseLong(req.getParameter("assetId"));
+        long pluginId = parseLong(req.getParameter("pluginId"));
 
-        Asset a = assetDao.findById(assetId)
+        Plugin a = pluginDao.findById(pluginId)
             .orElseThrow(() -> new NotFoundException("자산을 찾을 수 없습니다"));
 
-        if (a.getStatus() != AssetStatus.PUBLIC) {
+        if (a.getStatus() != PluginStatus.PUBLIC) {
             throw new ConflictException("판매중인 자산이 아닙니다");
         }
         if (a.getSellerId() == me.getId()) {
@@ -51,7 +51,7 @@ public class AddAction implements Action {
 
         List<CartItem> cart = CartSupport.get(req);
         for (CartItem existing : cart) {
-            if (existing.getAssetId() == a.getId()) {
+            if (existing.getPluginId() == a.getId()) {
                 throw new ConflictException("이미 장바구니에 있는 자산입니다");
             }
         }

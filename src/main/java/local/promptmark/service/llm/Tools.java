@@ -13,18 +13,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.TagDao;
 import local.promptmark.dao.UserDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.Tag;
 import local.promptmark.web.NotFoundException;
 
 /**
- * The agent's two callable tools: {@code search_assets} and
- * {@code get_asset_detail}. Each returns a {@link JsonNode} that gets fed back
+ * The agent's two callable tools: {@code search_plugins} and
+ * {@code get_plugin_detail}. Each returns a {@link JsonNode} that gets fed back
  * into the next LLM turn as the tool result message.
  *
  * <p>UserDao is held even though we don't query it yet — keeping the
@@ -33,23 +33,23 @@ import local.promptmark.web.NotFoundException;
  */
 public final class Tools {
 
-    public static final String TOOL_SEARCH_ASSETS = "search_assets";
-    public static final String TOOL_GET_ASSET_DETAIL = "get_asset_detail";
+    public static final String TOOL_SEARCH_PLUGINS = "search_plugins";
+    public static final String TOOL_GET_PLUGIN_DETAIL = "get_plugin_detail";
 
     private static final int DEFAULT_LIMIT = 10;
     private static final int MAX_LIMIT = 20;
     private static final int BODY_PREVIEW_MAX = 500;
 
-    private final AssetDao assetDao;
+    private final PluginDao pluginDao;
     private final TagDao tagDao;
     @SuppressWarnings("unused")
     private final UserDao userDao;
     private final EmbeddingClient embeddingClient;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Tools(AssetDao assetDao, TagDao tagDao, UserDao userDao,
+    public Tools(PluginDao pluginDao, TagDao tagDao, UserDao userDao,
                  EmbeddingClient embeddingClient) {
-        this.assetDao = assetDao;
+        this.pluginDao = pluginDao;
         this.tagDao = tagDao;
         this.userDao = userDao;
         this.embeddingClient = embeddingClient;
@@ -74,9 +74,9 @@ public final class Tools {
                 + "\"required\":[\"id\"]"
                 + "}");
             return Arrays.asList(
-                new ToolDef(TOOL_SEARCH_ASSETS,
+                new ToolDef(TOOL_SEARCH_PLUGINS,
                     "프롬프트/MD 자산 검색. 키워드+벡터 하이브리드.", searchSchema),
-                new ToolDef(TOOL_GET_ASSET_DETAIL,
+                new ToolDef(TOOL_GET_PLUGIN_DETAIL,
                     "특정 자산의 본문 미리보기·태그·데모 URL 조회.", detailSchema)
             );
         } catch (Exception e) {
@@ -86,26 +86,26 @@ public final class Tools {
 
     /** Routes a model-issued tool call to the correct method. */
     public JsonNode dispatch(String name, JsonNode args) {
-        if (TOOL_SEARCH_ASSETS.equals(name)) return searchAssets(args);
-        if (TOOL_GET_ASSET_DETAIL.equals(name)) return getAssetDetail(args);
+        if (TOOL_SEARCH_PLUGINS.equals(name)) return searchPlugins(args);
+        if (TOOL_GET_PLUGIN_DETAIL.equals(name)) return getPluginDetail(args);
         throw new LlmException("unknown tool: " + name);
     }
 
     /**
      * Tokenise + embed + hybrid search → JSON array of card-shaped objects.
      */
-    public JsonNode searchAssets(JsonNode args) {
+    public JsonNode searchPlugins(JsonNode args) {
         if (args == null || args.isNull()) args = mapper.createObjectNode();
         String query = args.path("query").asText("");
         if (query == null || query.trim().isEmpty()) {
             // Empty query → empty result rather than 400.
             return mapper.createArrayNode();
         }
-        AssetType type = null;
+        PluginType type = null;
         String typeStr = args.path("type").asText(null);
         if (typeStr != null && !typeStr.isEmpty()) {
             try {
-                type = AssetType.valueOf(typeStr.trim().toUpperCase());
+                type = PluginType.valueOf(typeStr.trim().toUpperCase());
             } catch (IllegalArgumentException ex) {
                 type = null;
             }
@@ -131,11 +131,11 @@ public final class Tools {
             }
         }
 
-        List<AssetCard> cards = assetDao.searchHybrid(
+        List<PluginCard> cards = pluginDao.searchHybrid(
             keywords, queryVector, type, maxPrice, limit);
 
         ArrayNode out = mapper.createArrayNode();
-        for (AssetCard c : cards) {
+        for (PluginCard c : cards) {
             ObjectNode n = out.addObject();
             n.put("id", c.getId());
             n.put("type", c.getType());
@@ -150,21 +150,21 @@ public final class Tools {
     }
 
     /**
-     * Look up a single PUBLIC asset and return body preview + tags. Throws
-     * {@link NotFoundException} when the asset is missing or non-public, so
+     * Look up a single PUBLIC plugin and return body preview + tags. Throws
+     * {@link NotFoundException} when the plugin is missing or non-public, so
      * the agent loop can surface a sensible message to the user.
      */
-    public JsonNode getAssetDetail(JsonNode args) {
+    public JsonNode getPluginDetail(JsonNode args) {
         if (args == null || !args.has("id") || !args.path("id").isNumber()) {
             throw new NotFoundException("id 인자가 필요합니다");
         }
         long id = args.path("id").asLong();
-        Optional<Asset> opt = assetDao.findById(id);
+        Optional<Plugin> opt = pluginDao.findById(id);
         if (!opt.isPresent()) {
             throw new NotFoundException("자산을 찾을 수 없습니다");
         }
-        Asset a = opt.get();
-        if (a.getStatus() != AssetStatus.PUBLIC) {
+        Plugin a = opt.get();
+        if (a.getStatus() != PluginStatus.PUBLIC) {
             throw new NotFoundException("자산을 찾을 수 없습니다");
         }
         ObjectNode out = mapper.createObjectNode();
@@ -177,7 +177,7 @@ public final class Tools {
         if (a.getVideoUrl() != null) out.put("video_url", a.getVideoUrl());
         out.put("price", a.getPrice());
         ArrayNode tagsNode = out.putArray("tags");
-        List<Tag> tagList = tagDao.findByAssetId(a.getId());
+        List<Tag> tagList = tagDao.findByPluginId(a.getId());
         for (Tag t : tagList) tagsNode.add(t.getName());
         return out;
     }

@@ -25,34 +25,34 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.TagDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.LoginUser;
 import local.promptmark.web.ForbiddenException;
 import local.promptmark.web.NotFoundException;
 import local.promptmark.web.Role;
 import local.promptmark.web.ValidationException;
 
-class AssetServiceTest {
+class PluginServiceTest {
 
-    private AssetDao assetDao;
+    private PluginDao pluginDao;
     private TagDao tagDao;
     private DataSource ds;
     private Connection conn;
-    private AssetService svc;
+    private PluginService svc;
 
     @BeforeEach
     void setUp() throws Exception {
-        assetDao = Mockito.mock(AssetDao.class);
+        pluginDao = Mockito.mock(PluginDao.class);
         tagDao = Mockito.mock(TagDao.class);
         ds = Mockito.mock(DataSource.class);
         conn = Mockito.mock(Connection.class);
         when(ds.getConnection()).thenReturn(conn);
         when(conn.getAutoCommit()).thenReturn(true);
-        svc = new AssetService(ds, assetDao, tagDao);
+        svc = new PluginService(ds, pluginDao, tagDao);
     }
 
     private LoginUser seller(long id) {
@@ -63,8 +63,8 @@ class AssetServiceTest {
         return new LoginUser(99L, "a@b.com", "admin", Role.ADMIN);
     }
 
-    private Asset assetOf(long id, long sellerId, AssetType type, AssetStatus status, int price) {
-        return new Asset(id, sellerId, type, "Sample Title", "Sample Summary",
+    private Plugin pluginOf(long id, long sellerId, PluginType type, PluginStatus status, int price) {
+        return new Plugin(id, sellerId, type, "Sample Title", "Sample Summary",
             "Body", null, null, null, price, status, 0, 0,
             Instant.now(), Instant.now());
     }
@@ -85,9 +85,9 @@ class AssetServiceTest {
         Map<String, String> form = baseForm("PROMPT");
         form.put("title", "x");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, "body", null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, "body", null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("title");
-        verify(assetDao, never()).insert(any());
+        verify(pluginDao, never()).insert(any());
     }
 
     @Test
@@ -95,7 +95,7 @@ class AssetServiceTest {
         Map<String, String> form = baseForm("PROMPT");
         form.put("summary", "x");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, "body", null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, "body", null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("summary");
     }
 
@@ -104,7 +104,7 @@ class AssetServiceTest {
         Map<String, String> form = baseForm("PROMPT");
         form.put("price", "-5");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, "body", null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, "body", null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("price");
     }
 
@@ -113,7 +113,7 @@ class AssetServiceTest {
         Map<String, String> form = baseForm("PROMPT");
         form.put("price", "abc");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, "body", null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, "body", null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("price");
     }
 
@@ -121,7 +121,7 @@ class AssetServiceTest {
     void create_rejects_unknown_type() {
         Map<String, String> form = baseForm("VIDEO");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, null, null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, null, null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("type");
     }
 
@@ -129,7 +129,7 @@ class AssetServiceTest {
     void create_prompt_requires_body() {
         Map<String, String> form = baseForm("PROMPT");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, "   ", null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, "   ", null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("body");
     }
 
@@ -137,7 +137,7 @@ class AssetServiceTest {
     void create_md_requires_file_key() {
         Map<String, String> form = baseForm("MD");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, null, null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, null, null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("file");
     }
 
@@ -146,7 +146,7 @@ class AssetServiceTest {
         Map<String, String> form = baseForm("PROMPT");
         form.put("demo_url", "javascript:alert(1)");
         ValidationException ex = catchValidation(() ->
-            svc.createAsset(seller(1L), form, "body", null, Collections.emptyList()));
+            svc.createPlugin(seller(1L), form, "body", null, Collections.emptyList()));
         assertThat(ex.fieldErrors()).containsKey("demo_url");
     }
 
@@ -155,156 +155,156 @@ class AssetServiceTest {
         Map<String, String> form = baseForm("PROMPT");
         form.put("price", "1500");
         form.put("demo_url", "https://example.com/demo");
-        when(assetDao.insert(any(Asset.class))).thenReturn(42L);
+        when(pluginDao.insert(any(Plugin.class))).thenReturn(42L);
 
-        long id = svc.createAsset(seller(7L), form, "Hello body",
+        long id = svc.createPlugin(seller(7L), form, "Hello body",
             null, Arrays.asList("AI", "기획"));
 
         assertThat(id).isEqualTo(42L);
-        verify(assetDao).insert(any(Asset.class));
-        verify(tagDao).replaceForAsset(eq(42L), eq(Arrays.asList("AI", "기획")), eq(conn));
+        verify(pluginDao).insert(any(Plugin.class));
+        verify(tagDao).replaceForPlugin(eq(42L), eq(Arrays.asList("AI", "기획")), eq(conn));
     }
 
     @Test
     void create_md_happy_path_passes_file_key_not_body() {
         Map<String, String> form = baseForm("MD");
-        when(assetDao.insert(any(Asset.class))).thenReturn(7L);
+        when(pluginDao.insert(any(Plugin.class))).thenReturn(7L);
 
-        long id = svc.createAsset(seller(1L), form, null, "uploads/assets/2026/01/01/x.md",
+        long id = svc.createPlugin(seller(1L), form, null, "uploads/plugins/2026/01/01/x.md",
             Collections.emptyList());
 
         assertThat(id).isEqualTo(7L);
-        verify(assetDao).insert(any(Asset.class));
+        verify(pluginDao).insert(any(Plugin.class));
     }
 
     @Test
     void create_calls_embedding_when_enabled() {
         Map<String, String> form = baseForm("PROMPT");
-        when(assetDao.insert(any(Asset.class))).thenReturn(99L);
+        when(pluginDao.insert(any(Plugin.class))).thenReturn(99L);
         local.promptmark.service.llm.EmbeddingClient embed =
             Mockito.mock(local.promptmark.service.llm.EmbeddingClient.class);
         when(embed.enabled()).thenReturn(true);
         when(embed.embed(anyString())).thenReturn(new float[]{0.1f, 0.2f});
 
-        AssetService withEmbed = new AssetService(ds, assetDao, tagDao, embed);
-        withEmbed.createAsset(seller(1L), form, "hello body", null,
+        PluginService withEmbed = new PluginService(ds, pluginDao, tagDao, embed);
+        withEmbed.createPlugin(seller(1L), form, "hello body", null,
             Collections.emptyList());
 
         verify(embed).embed(anyString());
-        verify(assetDao).updateEmbedding(eq(99L), any(float[].class));
+        verify(pluginDao).updateEmbedding(eq(99L), any(float[].class));
     }
 
     @Test
     void create_swallows_embedding_failure() {
         Map<String, String> form = baseForm("PROMPT");
-        when(assetDao.insert(any(Asset.class))).thenReturn(100L);
+        when(pluginDao.insert(any(Plugin.class))).thenReturn(100L);
         local.promptmark.service.llm.EmbeddingClient embed =
             Mockito.mock(local.promptmark.service.llm.EmbeddingClient.class);
         when(embed.enabled()).thenReturn(true);
         when(embed.embed(anyString()))
             .thenThrow(new local.promptmark.service.llm.LlmException("network down"));
 
-        AssetService withEmbed = new AssetService(ds, assetDao, tagDao, embed);
-        long id = withEmbed.createAsset(seller(1L), form, "hello body", null,
+        PluginService withEmbed = new PluginService(ds, pluginDao, tagDao, embed);
+        long id = withEmbed.createPlugin(seller(1L), form, "hello body", null,
             Collections.emptyList());
 
         assertThat(id).isEqualTo(100L);
-        verify(assetDao, never()).updateEmbedding(anyLong(), any(float[].class));
+        verify(pluginDao, never()).updateEmbedding(anyLong(), any(float[].class));
     }
 
     @Test
     void create_skips_embedding_when_disabled() {
         Map<String, String> form = baseForm("PROMPT");
-        when(assetDao.insert(any(Asset.class))).thenReturn(11L);
+        when(pluginDao.insert(any(Plugin.class))).thenReturn(11L);
         local.promptmark.service.llm.EmbeddingClient embed =
             Mockito.mock(local.promptmark.service.llm.EmbeddingClient.class);
         when(embed.enabled()).thenReturn(false);
 
-        AssetService withEmbed = new AssetService(ds, assetDao, tagDao, embed);
-        withEmbed.createAsset(seller(1L), form, "hello body", null,
+        PluginService withEmbed = new PluginService(ds, pluginDao, tagDao, embed);
+        withEmbed.createPlugin(seller(1L), form, "hello body", null,
             Collections.emptyList());
 
         verify(embed, never()).embed(anyString());
-        verify(assetDao, never()).updateEmbedding(anyLong(), any(float[].class));
+        verify(pluginDao, never()).updateEmbedding(anyLong(), any(float[].class));
     }
 
     // ───── getDetailAndIncrementView ─────────────────────────────────
 
     @Test
     void getDetail_throws_not_found_when_missing() {
-        when(assetDao.findById(1L)).thenReturn(Optional.empty());
+        when(pluginDao.findById(1L)).thenReturn(Optional.empty());
         assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> svc.getDetailAndIncrementView(1L));
-        verify(assetDao, never()).incrementViewCount(anyLong());
+        verify(pluginDao, never()).incrementViewCount(anyLong());
     }
 
     @Test
-    void getDetail_returns_asset_and_bumps_view() {
-        Asset a = assetOf(2L, 9L, AssetType.PROMPT, AssetStatus.PUBLIC, 0);
-        when(assetDao.findById(2L)).thenReturn(Optional.of(a));
-        Asset got = svc.getDetailAndIncrementView(2L);
+    void getDetail_returns_plugin_and_bumps_view() {
+        Plugin a = pluginOf(2L, 9L, PluginType.PROMPT, PluginStatus.PUBLIC, 0);
+        when(pluginDao.findById(2L)).thenReturn(Optional.of(a));
+        Plugin got = svc.getDetailAndIncrementView(2L);
         assertThat(got.getId()).isEqualTo(2L);
-        verify(assetDao).incrementViewCount(2L);
+        verify(pluginDao).incrementViewCount(2L);
     }
 
     // ───── getEditable / ownership ───────────────────────────────────
 
     @Test
     void getEditable_owner_can_load() {
-        Asset a = assetOf(5L, 3L, AssetType.PROMPT, AssetStatus.PUBLIC, 0);
-        when(assetDao.findByIdForOwner(5L, 3L)).thenReturn(Optional.of(a));
-        Asset got = svc.getEditable(5L, seller(3L));
+        Plugin a = pluginOf(5L, 3L, PluginType.PROMPT, PluginStatus.PUBLIC, 0);
+        when(pluginDao.findByIdForOwner(5L, 3L)).thenReturn(Optional.of(a));
+        Plugin got = svc.getEditable(5L, seller(3L));
         assertThat(got.getId()).isEqualTo(5L);
     }
 
     @Test
     void getEditable_non_owner_throws_forbidden() {
-        when(assetDao.findByIdForOwner(5L, 8L)).thenReturn(Optional.empty());
+        when(pluginDao.findByIdForOwner(5L, 8L)).thenReturn(Optional.empty());
         assertThatExceptionOfType(ForbiddenException.class)
             .isThrownBy(() -> svc.getEditable(5L, seller(8L)));
     }
 
     @Test
     void getEditable_admin_bypasses_owner_check() {
-        Asset a = assetOf(5L, 3L, AssetType.PROMPT, AssetStatus.PUBLIC, 0);
-        when(assetDao.findById(5L)).thenReturn(Optional.of(a));
-        Asset got = svc.getEditable(5L, admin());
+        Plugin a = pluginOf(5L, 3L, PluginType.PROMPT, PluginStatus.PUBLIC, 0);
+        when(pluginDao.findById(5L)).thenReturn(Optional.of(a));
+        Plugin got = svc.getEditable(5L, admin());
         assertThat(got.getSellerId()).isEqualTo(3L);
     }
 
     @Test
     void getEditable_admin_404_when_missing() {
-        when(assetDao.findById(5L)).thenReturn(Optional.empty());
+        when(pluginDao.findById(5L)).thenReturn(Optional.empty());
         assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> svc.getEditable(5L, admin()));
     }
 
-    // ───── deleteAsset ────────────────────────────────────────────────
+    // ───── deletePlugin ────────────────────────────────────────────────
 
     @Test
     void delete_owner_can_soft_delete() {
-        Asset a = assetOf(5L, 3L, AssetType.PROMPT, AssetStatus.PUBLIC, 0);
-        when(assetDao.findByIdForOwner(5L, 3L)).thenReturn(Optional.of(a));
-        svc.deleteAsset(5L, seller(3L));
-        verify(assetDao).softDelete(5L);
+        Plugin a = pluginOf(5L, 3L, PluginType.PROMPT, PluginStatus.PUBLIC, 0);
+        when(pluginDao.findByIdForOwner(5L, 3L)).thenReturn(Optional.of(a));
+        svc.deletePlugin(5L, seller(3L));
+        verify(pluginDao).softDelete(5L);
     }
 
     @Test
     void delete_non_owner_forbidden() {
-        when(assetDao.findByIdForOwner(5L, 8L)).thenReturn(Optional.empty());
+        when(pluginDao.findByIdForOwner(5L, 8L)).thenReturn(Optional.empty());
         assertThatExceptionOfType(ForbiddenException.class)
-            .isThrownBy(() -> svc.deleteAsset(5L, seller(8L)));
-        verify(assetDao, never()).softDelete(anyLong());
+            .isThrownBy(() -> svc.deletePlugin(5L, seller(8L)));
+        verify(pluginDao, never()).softDelete(anyLong());
     }
 
     // ───── search clamps ─────────────────────────────────────────────
 
     @Test
     void search_clamps_limit_and_offset() {
-        when(assetDao.search(anyString(), any(), anyString(), anyString(), anyInt(), anyInt()))
+        when(pluginDao.search(anyString(), any(), anyString(), anyString(), anyInt(), anyInt()))
             .thenReturn(Collections.emptyList());
-        svc.search("foo", AssetType.PROMPT, "AI", "recent", -10, 999);
-        verify(assetDao).search("foo", AssetType.PROMPT, "AI", "recent", 0, 50);
+        svc.search("foo", PluginType.PROMPT, "AI", "recent", -10, 999);
+        verify(pluginDao).search("foo", PluginType.PROMPT, "AI", "recent", 0, 50);
     }
 
     // ───── helpers ────────────────────────────────────────────────────

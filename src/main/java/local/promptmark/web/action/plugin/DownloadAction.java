@@ -1,4 +1,4 @@
-package local.promptmark.web.action.asset;
+package local.promptmark.web.action.plugin;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -12,7 +12,7 @@ import local.promptmark.web.NotFoundException;
 import local.promptmark.web.ViewResult;
 
 /**
- * GET {@code /app/asset/download?id=N} — resolve permissions, record the
+ * GET {@code /app/plugin/download?id=N} — resolve permissions, record the
  * download, and stream the bytes back. View result is binary so no JSP is
  * rendered.
  */

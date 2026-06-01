@@ -18,12 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.DownloadDao;
 import local.promptmark.dao.OrderDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.LoginUser;
 import local.promptmark.web.ForbiddenException;
 import local.promptmark.web.NotFoundException;
@@ -31,7 +31,7 @@ import local.promptmark.web.Role;
 
 class DownloadServiceTest {
 
-    private AssetDao assetDao;
+    private PluginDao pluginDao;
     private OrderDao orderDao;
     private DownloadDao downloadDao;
     private DataSource ds;
@@ -39,35 +39,35 @@ class DownloadServiceTest {
 
     @BeforeEach
     void setUp() {
-        assetDao = Mockito.mock(AssetDao.class);
+        pluginDao = Mockito.mock(PluginDao.class);
         orderDao = Mockito.mock(OrderDao.class);
         downloadDao = Mockito.mock(DownloadDao.class);
         ds = Mockito.mock(DataSource.class);
-        svc = new DownloadService(ds, assetDao, orderDao, downloadDao);
+        svc = new DownloadService(ds, pluginDao, orderDao, downloadDao);
     }
 
     private LoginUser user(long id, Role role) {
         return new LoginUser(id, "u" + id + "@b.com", "n" + id, role);
     }
 
-    private Asset prompt(long id, long sellerId, int price, String body) {
-        return new Asset(id, sellerId, AssetType.PROMPT, "Prompt " + id, "sum",
-            body, null, null, null, price, AssetStatus.PUBLIC, 0, 0,
+    private Plugin prompt(long id, long sellerId, int price, String body) {
+        return new Plugin(id, sellerId, PluginType.PROMPT, "Prompt " + id, "sum",
+            body, null, null, null, price, PluginStatus.PUBLIC, 0, 0,
             Instant.now(), Instant.now());
     }
 
-    private Asset md(long id, long sellerId, int price, String fileKey) {
-        return new Asset(id, sellerId, AssetType.MD, "MD " + id, "sum",
-            null, fileKey, null, null, price, AssetStatus.PUBLIC, 0, 0,
+    private Plugin md(long id, long sellerId, int price, String fileKey) {
+        return new Plugin(id, sellerId, PluginType.MD, "MD " + id, "sum",
+            null, fileKey, null, null, price, PluginStatus.PUBLIC, 0, 0,
             Instant.now(), Instant.now());
     }
 
     // ───── permission matrix ─────────────────────────────────────────
 
     @Test
-    void free_asset_any_user_can_download() {
-        Asset a = prompt(1L, 99L, 0, "hello");
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+    void free_plugin_any_user_can_download() {
+        Plugin a = prompt(1L, 99L, 0, "hello");
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
 
         DownloadService.DownloadPayload p = svc.resolveDownload(1L, user(7L, Role.USER));
         assertThat(p.content).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
@@ -76,18 +76,18 @@ class DownloadServiceTest {
     }
 
     @Test
-    void owner_can_download_paid_asset() {
-        Asset a = prompt(1L, 7L, 5000, "hello");
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+    void owner_can_download_paid_plugin() {
+        Plugin a = prompt(1L, 7L, 5000, "hello");
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
 
         DownloadService.DownloadPayload p = svc.resolveDownload(1L, user(7L, Role.SELLER));
         assertThat(p.content).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
-    void purchaser_can_download_paid_asset() {
-        Asset a = prompt(1L, 99L, 5000, "hello");
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+    void purchaser_can_download_paid_plugin() {
+        Plugin a = prompt(1L, 99L, 5000, "hello");
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
         when(orderDao.userHasPurchased(7L, 1L)).thenReturn(true);
 
         DownloadService.DownloadPayload p = svc.resolveDownload(1L, user(7L, Role.USER));
@@ -95,9 +95,9 @@ class DownloadServiceTest {
     }
 
     @Test
-    void random_user_cannot_download_paid_asset() {
-        Asset a = prompt(1L, 99L, 5000, "hello");
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+    void random_user_cannot_download_paid_plugin() {
+        Plugin a = prompt(1L, 99L, 5000, "hello");
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
         when(orderDao.userHasPurchased(7L, 1L)).thenReturn(false);
 
         assertThatExceptionOfType(ForbiddenException.class)
@@ -105,9 +105,9 @@ class DownloadServiceTest {
     }
 
     @Test
-    void admin_can_download_any_asset() {
-        Asset a = prompt(1L, 99L, 5000, "hello");
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+    void admin_can_download_any_plugin() {
+        Plugin a = prompt(1L, 99L, 5000, "hello");
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
 
         DownloadService.DownloadPayload p = svc.resolveDownload(1L, user(2L, Role.ADMIN));
         assertThat(p.content).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
@@ -120,19 +120,19 @@ class DownloadServiceTest {
     }
 
     @Test
-    void hidden_asset_blocked_for_non_owner_non_admin() {
-        Asset hidden = new Asset(1L, 99L, AssetType.PROMPT, "t", "s",
-            "body", null, null, null, 0, AssetStatus.HIDDEN, 0, 0,
+    void hidden_plugin_blocked_for_non_owner_non_admin() {
+        Plugin hidden = new Plugin(1L, 99L, PluginType.PROMPT, "t", "s",
+            "body", null, null, null, 0, PluginStatus.HIDDEN, 0, 0,
             Instant.now(), Instant.now());
-        when(assetDao.findById(1L)).thenReturn(Optional.of(hidden));
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(hidden));
 
         assertThatExceptionOfType(ForbiddenException.class)
             .isThrownBy(() -> svc.resolveDownload(1L, user(7L, Role.USER)));
     }
 
     @Test
-    void missing_asset_throws_not_found() {
-        when(assetDao.findById(1L)).thenReturn(Optional.empty());
+    void missing_plugin_throws_not_found() {
+        when(pluginDao.findById(1L)).thenReturn(Optional.empty());
         assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> svc.resolveDownload(1L, user(7L, Role.USER)));
     }
@@ -141,8 +141,8 @@ class DownloadServiceTest {
 
     @Test
     void prompt_bytes_come_from_body_field() {
-        Asset a = prompt(1L, 99L, 0, "안녕하세요");
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+        Plugin a = prompt(1L, 99L, 0, "안녕하세요");
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
 
         DownloadService.DownloadPayload p = svc.resolveDownload(1L, user(7L, Role.USER));
         assertThat(new String(p.content, StandardCharsets.UTF_8)).isEqualTo("안녕하세요");
@@ -153,8 +153,8 @@ class DownloadServiceTest {
         Path file = tmp.resolve("note.md");
         Files.write(file, "# Hello".getBytes(StandardCharsets.UTF_8));
 
-        Asset a = md(1L, 99L, 0, file.toString());
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+        Plugin a = md(1L, 99L, 0, file.toString());
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
 
         DownloadService.DownloadPayload p = svc.resolveDownload(1L, user(7L, Role.USER));
         assertThat(new String(p.content, StandardCharsets.UTF_8)).isEqualTo("# Hello");
@@ -164,8 +164,8 @@ class DownloadServiceTest {
 
     @Test
     void md_missing_file_throws_not_found(@TempDir Path tmp) {
-        Asset a = md(1L, 99L, 0, tmp.resolve("missing.md").toString());
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+        Plugin a = md(1L, 99L, 0, tmp.resolve("missing.md").toString());
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
 
         assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> svc.resolveDownload(1L, user(7L, Role.USER)));
@@ -173,8 +173,8 @@ class DownloadServiceTest {
 
     @Test
     void md_null_file_key_throws_not_found() {
-        Asset a = md(1L, 99L, 0, null);
-        when(assetDao.findById(1L)).thenReturn(Optional.of(a));
+        Plugin a = md(1L, 99L, 0, null);
+        when(pluginDao.findById(1L)).thenReturn(Optional.of(a));
 
         assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> svc.resolveDownload(1L, user(7L, Role.USER)));

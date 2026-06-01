@@ -10,7 +10,7 @@
   <c:choose>
     <c:when test="${empty cart}">
       <p class="empty">장바구니가 비어 있습니다.</p>
-      <p><a class="button" href="${ctx}/app/asset/list">자산 둘러보기</a></p>
+      <p><a class="button" href="${ctx}/app/plugin/list">자산 둘러보기</a></p>
     </c:when>
     <c:otherwise>
       <table class="cart-table">
@@ -21,7 +21,7 @@
           <c:forEach var="item" items="${cart}">
             <tr>
               <td>
-                <a href="${ctx}/app/asset/detail?id=${item.assetId}">
+                <a href="${ctx}/app/plugin/detail?id=${item.pluginId}">
                   <c:out value="${item.title}"/>
                 </a>
               </td>
@@ -33,7 +33,7 @@
                 </c:choose>
               </td>
               <td>
-                <form method="post" action="${ctx}/app/cart/remove?assetId=${item.assetId}" class="inline">
+                <form method="post" action="${ctx}/app/cart/remove?pluginId=${item.pluginId}" class="inline">
                   <%@ include file="/WEB-INF/view/layout/csrf.jspf" %>
                   <button type="submit" class="link">제거</button>
                 </form>

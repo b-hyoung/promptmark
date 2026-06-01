@@ -16,34 +16,34 @@ import javax.sql.DataSource;
 
 import com.pgvector.PGvector;
 
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
-import local.promptmark.service.llm.AssetCard;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
+import local.promptmark.service.llm.PluginCard;
 
 /**
- * SQL-only access to the {@code assets} table.
+ * SQL-only access to the {@code plugins} table.
  *
  * <p>Search uses ILIKE for case-insensitive title/summary matching and joins
- * tags through {@code asset_tags} when a tag filter is supplied. Sort modes
+ * tags through {@code plugin_tags} when a tag filter is supplied. Sort modes
  * are {@code "recent"} (default) and {@code "popular"} (download_count desc).
  */
-public class AssetDao {
+public class PluginDao {
 
-    /** Standard list of asset columns used for SELECT * style mappings. */
+    /** Standard list of plugin columns used for SELECT * style mappings. */
     private static final String COLS =
         "id, seller_id, type, title, summary, body, file_key, demo_url, video_url, " +
         "price, status, view_count, download_count, created_at, updated_at";
 
     private final DataSource ds;
 
-    public AssetDao(DataSource ds) {
+    public PluginDao(DataSource ds) {
         this.ds = ds;
     }
 
-    /** Looks up an asset by id, excluding soft-deleted rows. */
-    public Optional<Asset> findById(long id) {
-        String sql = "SELECT " + COLS + " FROM assets WHERE id = ? AND status <> 'DELETED'";
+    /** Looks up an plugin by id, excluding soft-deleted rows. */
+    public Optional<Plugin> findById(long id) {
+        String sql = "SELECT " + COLS + " FROM plugins WHERE id = ? AND status <> 'DELETED'";
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
@@ -60,8 +60,8 @@ public class AssetDao {
      * Strict owner-scoped lookup used for edit / delete authorisation. Returns
      * empty if the row belongs to a different seller or is soft-deleted.
      */
-    public Optional<Asset> findByIdForOwner(long id, long sellerId) {
-        String sql = "SELECT " + COLS + " FROM assets " +
+    public Optional<Plugin> findByIdForOwner(long id, long sellerId) {
+        String sql = "SELECT " + COLS + " FROM plugins " +
                      "WHERE id = ? AND seller_id = ? AND status <> 'DELETED'";
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -76,9 +76,9 @@ public class AssetDao {
         }
     }
 
-    /** Inserts a new asset row. Returns the generated id. */
-    public long insert(Asset a) {
-        String sql = "INSERT INTO assets " +
+    /** Inserts a new plugin row. Returns the generated id. */
+    public long insert(Plugin a) {
+        String sql = "INSERT INTO plugins " +
                      "(seller_id, type, title, summary, body, file_key, demo_url, video_url, " +
                      " price, status) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
@@ -94,13 +94,13 @@ public class AssetDao {
             setNullable(ps, 7, a.getDemoUrl());
             setNullable(ps, 8, a.getVideoUrl());
             ps.setInt(9, a.getPrice());
-            ps.setString(10, a.getStatus() == null ? AssetStatus.PUBLIC.name() : a.getStatus().name());
+            ps.setString(10, a.getStatus() == null ? PluginStatus.PUBLIC.name() : a.getStatus().name());
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) throw new SQLException("INSERT RETURNING produced no row");
                 return rs.getLong(1);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("insert asset failed: " + e.getMessage(), e);
+            throw new RuntimeException("insert plugin failed: " + e.getMessage(), e);
         }
     }
 
@@ -116,7 +116,7 @@ public class AssetDao {
                        String demoUrl,
                        String videoUrl,
                        int price) {
-        String sql = "UPDATE assets SET " +
+        String sql = "UPDATE plugins SET " +
                      "title = ?, summary = ?, body = ?, file_key = ?, " +
                      "demo_url = ?, video_url = ?, price = ?, updated_at = now() " +
                      "WHERE id = ?";
@@ -132,7 +132,7 @@ public class AssetDao {
             ps.setLong(8, id);
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("update asset failed: " + e.getMessage(), e);
+            throw new RuntimeException("update plugin failed: " + e.getMessage(), e);
         }
     }
 
@@ -140,7 +140,7 @@ public class AssetDao {
     public void softDelete(long id) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                 "UPDATE assets SET status = 'DELETED', updated_at = now() WHERE id = ?")) {
+                 "UPDATE plugins SET status = 'DELETED', updated_at = now() WHERE id = ?")) {
             ps.setLong(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -152,7 +152,7 @@ public class AssetDao {
     public void incrementViewCount(long id) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                 "UPDATE assets SET view_count = view_count + 1 WHERE id = ?")) {
+                 "UPDATE plugins SET view_count = view_count + 1 WHERE id = ?")) {
             ps.setLong(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -163,7 +163,7 @@ public class AssetDao {
     /** Transactional variant for the download flow. */
     public void incrementDownloadCount(long id, Connection conn) {
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE assets SET download_count = download_count + 1 WHERE id = ?")) {
+                "UPDATE plugins SET download_count = download_count + 1 WHERE id = ?")) {
             ps.setLong(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -179,18 +179,18 @@ public class AssetDao {
      * @param tag   exact tag name — null skips
      * @param sort  "recent" (default) or "popular"
      */
-    public List<Asset> search(String q,
-                              AssetType type,
+    public List<Plugin> search(String q,
+                              PluginType type,
                               String tag,
                               String sort,
                               int offset,
                               int limit) {
         StringBuilder sb = new StringBuilder();
-        sb.append("SELECT DISTINCT a.").append(COLS.replace(", ", ", a.")).append(" FROM assets a ");
+        sb.append("SELECT DISTINCT a.").append(COLS.replace(", ", ", a.")).append(" FROM plugins a ");
         List<Object> params = new ArrayList<>();
         boolean joinTags = tag != null && !tag.isEmpty();
         if (joinTags) {
-            sb.append("JOIN asset_tags at ON at.asset_id = a.id ");
+            sb.append("JOIN plugin_tags at ON at.plugin_id = a.id ");
             sb.append("JOIN tags t ON t.id = at.tag_id ");
         }
         sb.append("WHERE a.status = 'PUBLIC' ");
@@ -223,7 +223,7 @@ public class AssetDao {
                 ps.setObject(i + 1, params.get(i));
             }
             try (ResultSet rs = ps.executeQuery()) {
-                List<Asset> out = new ArrayList<>();
+                List<Plugin> out = new ArrayList<>();
                 while (rs.next()) out.add(map(rs));
                 return out;
             }
@@ -233,13 +233,13 @@ public class AssetDao {
     }
 
     /** Row count matching the same search filters (no LIMIT/OFFSET). */
-    public int countSearch(String q, AssetType type, String tag) {
+    public int countSearch(String q, PluginType type, String tag) {
         StringBuilder sb = new StringBuilder();
-        sb.append("SELECT COUNT(DISTINCT a.id) FROM assets a ");
+        sb.append("SELECT COUNT(DISTINCT a.id) FROM plugins a ");
         List<Object> params = new ArrayList<>();
         boolean joinTags = tag != null && !tag.isEmpty();
         if (joinTags) {
-            sb.append("JOIN asset_tags at ON at.asset_id = a.id ");
+            sb.append("JOIN plugin_tags at ON at.plugin_id = a.id ");
             sb.append("JOIN tags t ON t.id = at.tag_id ");
         }
         sb.append("WHERE a.status = 'PUBLIC' ");
@@ -271,9 +271,9 @@ public class AssetDao {
         }
     }
 
-    /** Seller's recently-created PUBLIC/HIDDEN assets (DELETED excluded). */
-    public List<Asset> findBySellerId(long sellerId, int limit) {
-        String sql = "SELECT " + COLS + " FROM assets " +
+    /** Seller's recently-created PUBLIC/HIDDEN plugins (DELETED excluded). */
+    public List<Plugin> findBySellerId(long sellerId, int limit) {
+        String sql = "SELECT " + COLS + " FROM plugins " +
                      "WHERE seller_id = ? AND status <> 'DELETED' " +
                      "ORDER BY created_at DESC, id DESC LIMIT ?";
         try (Connection c = ds.getConnection();
@@ -281,7 +281,7 @@ public class AssetDao {
             ps.setLong(1, sellerId);
             ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
-                List<Asset> out = new ArrayList<>();
+                List<Plugin> out = new ArrayList<>();
                 while (rs.next()) out.add(map(rs));
                 return out;
             }
@@ -296,22 +296,22 @@ public class AssetDao {
     private static final AtomicBoolean PGVECTOR_REGISTERED = new AtomicBoolean(false);
 
     /**
-     * Update the {@code embedding} column for a single asset. Uses the
+     * Update the {@code embedding} column for a single plugin. Uses the
      * pgvector-java helper to bind the float[] as a {@code vector} value.
      *
      * @throws RuntimeException on any SQL failure (caller is expected to log
      *                          and continue — embedding is best-effort).
      */
-    public void updateEmbedding(long assetId, float[] vector) {
+    public void updateEmbedding(long pluginId, float[] vector) {
         if (vector == null) {
             throw new IllegalArgumentException("vector must not be null");
         }
         try (Connection c = ds.getConnection()) {
             ensurePgVectorRegistered(c);
             try (PreparedStatement ps = c.prepareStatement(
-                    "UPDATE assets SET embedding = ? WHERE id = ?")) {
+                    "UPDATE plugins SET embedding = ? WHERE id = ?")) {
                 ps.setObject(1, new PGvector(vector));
-                ps.setLong(2, assetId);
+                ps.setLong(2, pluginId);
                 ps.executeUpdate();
             }
         } catch (SQLException e) {
@@ -336,13 +336,13 @@ public class AssetDao {
      *
      * @param keywords     tokenised user query (each token gets wildcards added)
      * @param queryVector  embedding of the user query, or null to skip vector ranking
-     * @param typeOrNull   optional asset-type filter
+     * @param typeOrNull   optional plugin-type filter
      * @param maxPriceOrNull optional max-price filter (inclusive)
      * @param limit        max rows in the result (clamped to ≥1)
      */
-    public List<AssetCard> searchHybrid(String[] keywords,
+    public List<PluginCard> searchHybrid(String[] keywords,
                                         float[] queryVector,
-                                        AssetType typeOrNull,
+                                        PluginType typeOrNull,
                                         Integer maxPriceOrNull,
                                         int limit) {
         boolean haveKeywords = keywords != null && keywords.length > 0;
@@ -367,24 +367,24 @@ public class AssetDao {
         }
         candidates.sort((a, b) -> Double.compare(b.score, a.score));
 
-        List<AssetCard> out = new ArrayList<>();
+        List<PluginCard> out = new ArrayList<>();
         for (int i = 0; i < Math.min(safeLimit, candidates.size()); i++) {
             Candidate c = candidates.get(i);
-            out.add(new AssetCard(c.id, c.type, c.title, c.summary, c.price,
+            out.add(new PluginCard(c.id, c.type, c.title, c.summary, c.price,
                 c.score, c.tags, null));
         }
         return out;
     }
 
     private List<Candidate> fetchCandidates(String[] keywords,
-                                            AssetType typeOrNull,
+                                            PluginType typeOrNull,
                                             Integer maxPriceOrNull) {
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT a.id, a.type, a.title, a.summary, a.price, a.download_count, ");
         sb.append("       a.embedding, ");
         sb.append("       COALESCE(ARRAY_AGG(t.name) FILTER (WHERE t.name IS NOT NULL), ARRAY[]::text[]) AS tag_names ");
-        sb.append("FROM assets a ");
-        sb.append("LEFT JOIN asset_tags at ON at.asset_id = a.id ");
+        sb.append("FROM plugins a ");
+        sb.append("LEFT JOIN plugin_tags at ON at.plugin_id = a.id ");
         sb.append("LEFT JOIN tags t        ON t.id = at.tag_id ");
         sb.append("WHERE a.status = 'PUBLIC' ");
 
@@ -579,13 +579,13 @@ public class AssetDao {
         }
     }
 
-    private static Asset map(ResultSet rs) throws SQLException {
+    private static Plugin map(ResultSet rs) throws SQLException {
         Timestamp created = rs.getTimestamp("created_at");
         Timestamp updated = rs.getTimestamp("updated_at");
-        return new Asset(
+        return new Plugin(
             rs.getLong("id"),
             rs.getLong("seller_id"),
-            AssetType.fromDb(rs.getString("type")),
+            PluginType.fromDb(rs.getString("type")),
             rs.getString("title"),
             rs.getString("summary"),
             rs.getString("body"),
@@ -593,7 +593,7 @@ public class AssetDao {
             rs.getString("demo_url"),
             rs.getString("video_url"),
             rs.getInt("price"),
-            AssetStatus.fromDb(rs.getString("status")),
+            PluginStatus.fromDb(rs.getString("status")),
             rs.getInt("view_count"),
             rs.getInt("download_count"),
             created == null ? null : created.toInstant(),

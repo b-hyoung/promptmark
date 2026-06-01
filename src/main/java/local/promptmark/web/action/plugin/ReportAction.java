@@ -1,4 +1,4 @@
-package local.promptmark.web.action.asset;
+package local.promptmark.web.action.plugin;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -12,7 +12,7 @@ import local.promptmark.web.ValidationException;
 import local.promptmark.web.ViewResult;
 
 /**
- * POST {@code /app/asset/report?id=N} — record a user report against an asset.
+ * POST {@code /app/plugin/report?id=N} — record a user report against an plugin.
  * Reason is required (3..300 chars). On success bounces back to detail with a
  * confirmation flag.
  */
@@ -42,7 +42,7 @@ public class ReportAction implements Action {
 
         reportDao.insert(me.getId(), id, trimmed);
         return ViewResult.redirect(req.getContextPath() +
-            "/app/asset/detail?id=" + id + "&msg=reported_ok");
+            "/app/plugin/detail?id=" + id + "&msg=reported_ok");
     }
 
     private static long parseLong(String s) {

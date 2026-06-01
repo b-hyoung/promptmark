@@ -27,7 +27,7 @@ class OpenAiLlmClientTest {
             captured.set(body);
             return new HttpInvoker.Response(200, sampleAssistantText("hello"));
         };
-        ToolDef tool = new ToolDef("search_assets", "search",
+        ToolDef tool = new ToolDef("search_plugins", "search",
             mapper.readTree("{\"type\":\"object\",\"properties\":{}}"));
         OpenAiLlmClient client = new OpenAiLlmClient("sk-test", "gpt-4o-mini", invoker);
 
@@ -46,7 +46,7 @@ class OpenAiLlmClientTest {
         assertThat(body.path("tools").size()).isEqualTo(1);
         assertThat(body.path("tools").get(0).path("type").asText()).isEqualTo("function");
         assertThat(body.path("tools").get(0).path("function").path("name").asText())
-            .isEqualTo("search_assets");
+            .isEqualTo("search_plugins");
     }
 
     @Test
@@ -75,7 +75,7 @@ class OpenAiLlmClientTest {
         c0.put("id", "call_1");
         c0.put("type", "function");
         ObjectNode fn = c0.putObject("function");
-        fn.put("name", "search_assets");
+        fn.put("name", "search_plugins");
         fn.put("arguments", "{\"query\":\"hello\"}");
         String responseBody = mapper.writeValueAsString(root);
 
@@ -88,7 +88,7 @@ class OpenAiLlmClientTest {
 
         assertThat(reply.toolCalls()).hasSize(1);
         assertThat(reply.toolCalls().get(0).id()).isEqualTo("call_1");
-        assertThat(reply.toolCalls().get(0).name()).isEqualTo("search_assets");
+        assertThat(reply.toolCalls().get(0).name()).isEqualTo("search_plugins");
         assertThat(reply.toolCalls().get(0).arguments().path("query").asText()).isEqualTo("hello");
     }
 

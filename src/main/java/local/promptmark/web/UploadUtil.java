@@ -16,9 +16,9 @@ import javax.servlet.http.HttpServletRequest;
 import com.oreilly.servlet.MultipartRequest;
 
 /**
- * Thin wrapper around cos.jar's {@link MultipartRequest} for the asset upload
+ * Thin wrapper around cos.jar's {@link MultipartRequest} for the plugin upload
  * flow. Parsing writes to {@code uploads/tmp/}; promoting to the permanent
- * store builds a date-bucketed path under {@code uploads/assets/yyyy/MM/dd/}
+ * store builds a date-bucketed path under {@code uploads/plugins/yyyy/MM/dd/}
  * and returns the relative key.
  */
 public final class UploadUtil {
@@ -27,7 +27,7 @@ public final class UploadUtil {
     public static final int MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
     private static final String TMP_DIR_DEFAULT = "uploads/tmp";
-    private static final String STORE_ROOT_DEFAULT = "uploads/assets";
+    private static final String STORE_ROOT_DEFAULT = "uploads/plugins";
 
     private UploadUtil() {}
 
@@ -44,7 +44,7 @@ public final class UploadUtil {
 
     /**
      * Move the uploaded file under {@code fieldName} into the permanent store
-     * and return its relative key (e.g. {@code uploads/assets/2026/05/30/<uuid>-<name>}).
+     * and return its relative key (e.g. {@code uploads/plugins/2026/05/30/<uuid>-<name>}).
      * Returns null if no file was supplied for that field.
      */
     public static String moveToPermanentStore(MultipartRequest mr, String fieldName)

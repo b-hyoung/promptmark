@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.ReportDao;
 import local.promptmark.dao.UserDao;
 import local.promptmark.dto.User;
@@ -33,7 +33,7 @@ import local.promptmark.web.ValidationException;
 class AdminServiceTest {
 
     private ReportDao reportDao;
-    private AssetDao assetDao;
+    private PluginDao pluginDao;
     private UserDao userDao;
     private DataSource ds;
     private Connection conn;
@@ -43,7 +43,7 @@ class AdminServiceTest {
     @BeforeEach
     void setUp() throws Exception {
         reportDao = Mockito.mock(ReportDao.class);
-        assetDao = Mockito.mock(AssetDao.class);
+        pluginDao = Mockito.mock(PluginDao.class);
         userDao = Mockito.mock(UserDao.class);
         ds = Mockito.mock(DataSource.class);
         conn = Mockito.mock(Connection.class);
@@ -51,7 +51,7 @@ class AdminServiceTest {
         when(ds.getConnection()).thenReturn(conn);
         when(conn.getAutoCommit()).thenReturn(true);
         when(conn.prepareStatement(anyString())).thenReturn(ps);
-        svc = new AdminService(ds, reportDao, assetDao, userDao);
+        svc = new AdminService(ds, reportDao, pluginDao, userDao);
     }
 
     private User user(long id, User.Status status) {
@@ -84,7 +84,7 @@ class AdminServiceTest {
 
     @Test
     void resolveReport_404s_when_report_missing() {
-        when(reportDao.findAssetId(99L)).thenReturn(Optional.empty());
+        when(reportDao.findPluginId(99L)).thenReturn(Optional.empty());
         assertThatExceptionOfType(NotFoundException.class).isThrownBy(
             () -> svc.resolveReport(99L, "HIDE"));
         verify(reportDao, never()).resolve(eq(99L), anyString(), any());
@@ -93,14 +93,14 @@ class AdminServiceTest {
     // ───── resolveReport — happy paths ─────────────────────────────────
 
     @Test
-    void resolveReport_HIDE_flips_asset_to_HIDDEN_and_resolves() throws SQLException {
-        when(reportDao.findAssetId(1L)).thenReturn(Optional.of(42L));
+    void resolveReport_HIDE_flips_plugin_to_HIDDEN_and_resolves() throws SQLException {
+        when(reportDao.findPluginId(1L)).thenReturn(Optional.of(42L));
 
         svc.resolveReport(1L, "HIDE");
 
-        // The inline UPDATE assets SQL is the first prepareStatement call.
+        // The inline UPDATE plugins SQL is the first prepareStatement call.
         verify(conn, atLeastOnce()).prepareStatement(
-            "UPDATE assets SET status = ?, updated_at = now() WHERE id = ?");
+            "UPDATE plugins SET status = ?, updated_at = now() WHERE id = ?");
         verify(ps).setString(1, "HIDDEN");
         verify(ps).setLong(2, 42L);
         verify(reportDao).resolve(eq(1L), eq("RESOLVED"), any(Connection.class));
@@ -108,8 +108,8 @@ class AdminServiceTest {
     }
 
     @Test
-    void resolveReport_DELETE_flips_asset_to_DELETED_and_resolves() throws SQLException {
-        when(reportDao.findAssetId(1L)).thenReturn(Optional.of(42L));
+    void resolveReport_DELETE_flips_plugin_to_DELETED_and_resolves() throws SQLException {
+        when(reportDao.findPluginId(1L)).thenReturn(Optional.of(42L));
 
         svc.resolveReport(1L, "DELETE");
 
@@ -121,20 +121,20 @@ class AdminServiceTest {
 
     @Test
     void resolveReport_REJECT_only_closes_report() throws SQLException {
-        when(reportDao.findAssetId(1L)).thenReturn(Optional.of(42L));
+        when(reportDao.findPluginId(1L)).thenReturn(Optional.of(42L));
 
         svc.resolveReport(1L, "REJECT");
 
-        // REJECT does not touch assets; the inline asset SQL must not be prepared.
+        // REJECT does not touch plugins; the inline plugin SQL must not be prepared.
         verify(conn, never()).prepareStatement(
-            "UPDATE assets SET status = ?, updated_at = now() WHERE id = ?");
+            "UPDATE plugins SET status = ?, updated_at = now() WHERE id = ?");
         verify(reportDao).resolve(eq(1L), eq("REJECTED"), any(Connection.class));
         verify(conn).commit();
     }
 
     @Test
     void resolveReport_rolls_back_on_failure() throws SQLException {
-        when(reportDao.findAssetId(1L)).thenReturn(Optional.of(42L));
+        when(reportDao.findPluginId(1L)).thenReturn(Optional.of(42L));
         Mockito.doThrow(new RuntimeException("boom"))
             .when(reportDao).resolve(eq(1L), anyString(), any(Connection.class));
 

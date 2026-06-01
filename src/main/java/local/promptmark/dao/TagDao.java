@@ -15,7 +15,7 @@ import javax.sql.DataSource;
 import local.promptmark.dto.Tag;
 
 /**
- * Tag lookup + asset_tags relationship management. Tag names are unique;
+ * Tag lookup + plugin_tags relationship management. Tag names are unique;
  * {@link #upsert(String)} returns the id whether the row already existed
  * or was just inserted.
  */
@@ -85,34 +85,34 @@ public class TagDao {
         }
     }
 
-    /** Tags joined to an asset via {@code asset_tags}. */
-    public List<Tag> findByAssetId(long assetId) {
+    /** Tags joined to an plugin via {@code plugin_tags}. */
+    public List<Tag> findByPluginId(long pluginId) {
         String sql = "SELECT t.id, t.name FROM tags t " +
-                     "JOIN asset_tags at ON at.tag_id = t.id " +
-                     "WHERE at.asset_id = ? " +
+                     "JOIN plugin_tags at ON at.tag_id = t.id " +
+                     "WHERE at.plugin_id = ? " +
                      "ORDER BY t.name";
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setLong(1, assetId);
+            ps.setLong(1, pluginId);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Tag> out = new ArrayList<>();
                 while (rs.next()) out.add(new Tag(rs.getLong(1), rs.getString(2)));
                 return out;
             }
         } catch (SQLException e) {
-            throw new RuntimeException("findByAssetId failed: " + e.getMessage(), e);
+            throw new RuntimeException("findByPluginId failed: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Atomically replace all tags on an asset. Caller manages the transaction;
+     * Atomically replace all tags on an plugin. Caller manages the transaction;
      * we just consume the supplied connection.
      */
-    public void replaceForAsset(long assetId, List<String> tagNames, Connection conn) {
+    public void replaceForPlugin(long pluginId, List<String> tagNames, Connection conn) {
         try {
             try (PreparedStatement del = conn.prepareStatement(
-                    "DELETE FROM asset_tags WHERE asset_id = ?")) {
-                del.setLong(1, assetId);
+                    "DELETE FROM plugin_tags WHERE plugin_id = ?")) {
+                del.setLong(1, pluginId);
                 del.executeUpdate();
             }
             if (tagNames == null || tagNames.isEmpty()) return;
@@ -129,15 +129,15 @@ public class TagDao {
             for (String name : dedup) {
                 long tagId = upsertOn(conn, name);
                 try (PreparedStatement ins = conn.prepareStatement(
-                        "INSERT INTO asset_tags (asset_id, tag_id) VALUES (?, ?) " +
+                        "INSERT INTO plugin_tags (plugin_id, tag_id) VALUES (?, ?) " +
                         "ON CONFLICT DO NOTHING")) {
-                    ins.setLong(1, assetId);
+                    ins.setLong(1, pluginId);
                     ins.setLong(2, tagId);
                     ins.executeUpdate();
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("replaceForAsset failed: " + e.getMessage(), e);
+            throw new RuntimeException("replaceForPlugin failed: " + e.getMessage(), e);
         }
     }
 

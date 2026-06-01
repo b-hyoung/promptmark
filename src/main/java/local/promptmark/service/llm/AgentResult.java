@@ -17,11 +17,11 @@ public final class AgentResult {
 
     private final String answer;
     private final String source;
-    private final List<AssetCard> items;
+    private final List<PluginCard> items;
     private final List<TraceEntry> trace;
 
     public AgentResult(String answer, String source,
-                       List<AssetCard> items, List<TraceEntry> trace) {
+                       List<PluginCard> items, List<TraceEntry> trace) {
         this.answer = answer;
         this.source = source;
         this.items = (items == null) ? Collections.emptyList() : items;
@@ -30,7 +30,7 @@ public final class AgentResult {
 
     public String getAnswer() { return answer; }
     public String getSource() { return source; }
-    public List<AssetCard> getItems() { return items; }
+    public List<PluginCard> getItems() { return items; }
     public List<TraceEntry> getTrace() { return trace; }
 
     /** Stable-key map for JSON serialisation. */
@@ -39,7 +39,7 @@ public final class AgentResult {
         m.put("answer", answer);
         m.put("source", source);
         List<Map<String, Object>> itemMaps = new ArrayList<>();
-        for (AssetCard c : items) itemMaps.add(c.toMap());
+        for (PluginCard c : items) itemMaps.add(c.toMap());
         m.put("items", itemMaps);
         List<Map<String, Object>> traceMaps = new ArrayList<>();
         for (TraceEntry t : trace) traceMaps.add(t.toMap());

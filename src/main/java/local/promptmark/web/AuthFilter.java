@@ -110,7 +110,7 @@ public class AuthFilter implements Filter {
             ? full.substring(ctx.length())
             : full;
         if (!next.startsWith("/app/")) {
-            next = "/app/asset/list";
+            next = "/app/plugin/list";
         }
         String encoded = URLEncoder.encode(next, StandardCharsets.UTF_8.name());
         String target = ctx + "/app/auth/login?next=" + encoded;

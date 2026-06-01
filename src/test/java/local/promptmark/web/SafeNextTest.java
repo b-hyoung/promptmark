@@ -10,8 +10,8 @@ class SafeNextTest {
 
     @Test
     void allows_app_paths() {
-        assertThat(SafeNext.resolveValue("/app/asset/list", FALLBACK))
-            .isEqualTo("/app/asset/list");
+        assertThat(SafeNext.resolveValue("/app/plugin/list", FALLBACK))
+            .isEqualTo("/app/plugin/list");
         assertThat(SafeNext.resolveValue("/app/auth/login?msg=ok", FALLBACK))
             .isEqualTo("/app/auth/login?msg=ok");
     }
@@ -30,7 +30,7 @@ class SafeNextTest {
     @Test
     void rejects_absolute_urls() {
         assertThat(SafeNext.resolveValue("http://evil.com", FALLBACK)).isEqualTo(FALLBACK);
-        assertThat(SafeNext.resolveValue("https://evil.com/app/asset/list", FALLBACK))
+        assertThat(SafeNext.resolveValue("https://evil.com/app/plugin/list", FALLBACK))
             .isEqualTo(FALLBACK);
     }
 
@@ -38,7 +38,7 @@ class SafeNextTest {
     void rejects_paths_outside_app() {
         assertThat(SafeNext.resolveValue("/", FALLBACK)).isEqualTo(FALLBACK);
         assertThat(SafeNext.resolveValue("/admin", FALLBACK)).isEqualTo(FALLBACK);
-        assertThat(SafeNext.resolveValue("app/asset/list", FALLBACK)).isEqualTo(FALLBACK);
+        assertThat(SafeNext.resolveValue("app/plugin/list", FALLBACK)).isEqualTo(FALLBACK);
     }
 
     @Test

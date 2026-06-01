@@ -13,19 +13,19 @@
   <ul class="order-items">
     <c:forEach var="it" items="${items}">
       <li>
-        <a href="${ctx}/app/asset/detail?id=${it.assetId}">
+        <a href="${ctx}/app/plugin/detail?id=${it.pluginId}">
           <c:out value="${it.title}"/>
         </a>
         — <c:out value="${it.pricePaid}"/>원
         &middot;
-        <a href="${ctx}/app/asset/download?id=${it.assetId}">다운로드</a>
+        <a href="${ctx}/app/plugin/download?id=${it.pluginId}">다운로드</a>
       </li>
     </c:forEach>
   </ul>
 
   <p class="action-row">
     <a class="button" href="${ctx}/app/order/history">주문 내역 보기</a>
-    <a class="button-link" href="${ctx}/app/asset/list">자산 둘러보기</a>
+    <a class="button-link" href="${ctx}/app/plugin/list">자산 둘러보기</a>
   </p>
 </section>
 

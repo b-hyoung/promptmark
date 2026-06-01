@@ -10,11 +10,11 @@ class AuthMapTest {
     void anonymous_actions_listed_in_spec_resolve_to_anonymous() {
         assertThat(AuthMap.required("auth.signup")).isEqualTo(Role.ANONYMOUS);
         assertThat(AuthMap.required("auth.login")).isEqualTo(Role.ANONYMOUS);
-        assertThat(AuthMap.required("asset.list")).isEqualTo(Role.ANONYMOUS);
-        assertThat(AuthMap.required("asset.detail")).isEqualTo(Role.ANONYMOUS);
+        assertThat(AuthMap.required("plugin.list")).isEqualTo(Role.ANONYMOUS);
+        assertThat(AuthMap.required("plugin.detail")).isEqualTo(Role.ANONYMOUS);
 
         assertThat(AuthMap.isAnonymous("auth.login")).isTrue();
-        assertThat(AuthMap.isAnonymous("asset.list")).isTrue();
+        assertThat(AuthMap.isAnonymous("plugin.list")).isTrue();
     }
 
     @Test

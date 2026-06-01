@@ -44,11 +44,11 @@ public class OrderDao {
         }
     }
 
-    public void insertOrderItem(long orderId, long assetId, int pricePaid, Connection conn) {
+    public void insertOrderItem(long orderId, long pluginId, int pricePaid, Connection conn) {
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO order_items (order_id, asset_id, price_paid) VALUES (?, ?, ?)")) {
+                "INSERT INTO order_items (order_id, plugin_id, price_paid) VALUES (?, ?, ?)")) {
             ps.setLong(1, orderId);
-            ps.setLong(2, assetId);
+            ps.setLong(2, pluginId);
             ps.setInt(3, pricePaid);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -76,11 +76,11 @@ public class OrderDao {
         }
     }
 
-    /** Order-line view joining assets for the title column. */
+    /** Order-line view joining plugins for the title column. */
     public List<OrderItem> findItems(long orderId) {
-        String sql = "SELECT oi.id, oi.order_id, oi.asset_id, oi.price_paid, a.title " +
+        String sql = "SELECT oi.id, oi.order_id, oi.plugin_id, oi.price_paid, a.title " +
                      "FROM order_items oi " +
-                     "JOIN assets a ON a.id = oi.asset_id " +
+                     "JOIN plugins a ON a.id = oi.plugin_id " +
                      "WHERE oi.order_id = ? " +
                      "ORDER BY oi.id";
         try (Connection c = ds.getConnection();
@@ -92,7 +92,7 @@ public class OrderDao {
                     out.add(new OrderItem(
                         rs.getLong("id"),
                         rs.getLong("order_id"),
-                        rs.getLong("asset_id"),
+                        rs.getLong("plugin_id"),
                         rs.getInt("price_paid"),
                         rs.getString("title")));
                 }
@@ -128,16 +128,16 @@ public class OrderDao {
         }
     }
 
-    /** True if the user has ever bought this asset in a PAID order. */
-    public boolean userHasPurchased(long userId, long assetId) {
+    /** True if the user has ever bought this plugin in a PAID order. */
+    public boolean userHasPurchased(long userId, long pluginId) {
         String sql = "SELECT 1 FROM orders o " +
                      "JOIN order_items oi ON oi.order_id = o.id " +
-                     "WHERE o.user_id = ? AND oi.asset_id = ? AND o.status = 'PAID' " +
+                     "WHERE o.user_id = ? AND oi.plugin_id = ? AND o.status = 'PAID' " +
                      "LIMIT 1";
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, userId);
-            ps.setLong(2, assetId);
+            ps.setLong(2, pluginId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }

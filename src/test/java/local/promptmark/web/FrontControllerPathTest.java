@@ -9,7 +9,7 @@ class FrontControllerPathTest {
     @Test
     void parses_module_action() {
         assertThat(FrontController.parseActionKey("/auth/login")).isEqualTo("auth.login");
-        assertThat(FrontController.parseActionKey("/asset/list")).isEqualTo("asset.list");
+        assertThat(FrontController.parseActionKey("/plugin/list")).isEqualTo("plugin.list");
     }
 
     @Test

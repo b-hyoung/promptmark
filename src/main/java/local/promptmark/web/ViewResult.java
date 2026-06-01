@@ -95,7 +95,7 @@ public final class ViewResult {
         res.setContentType(mime);
         res.setContentLength(content == null ? 0 : content.length);
         // Belt-and-braces: ASCII filename + RFC 5987 UTF-8 filename* so browsers
-        // get a sensible save name even when the asset title is non-ASCII.
+        // get a sensible save name even when the plugin title is non-ASCII.
         String asciiName = toAscii(safeName);
         String encoded = java.net.URLEncoder.encode(safeName, StandardCharsets.UTF_8.name())
             .replace("+", "%20");

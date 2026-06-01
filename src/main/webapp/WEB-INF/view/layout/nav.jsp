@@ -7,7 +7,7 @@
 <nav class="topbar">
   <a class="brand" href="${ctx}/">promptmark</a>
   <ul class="nav-links">
-    <li><a href="${ctx}/app/asset/list"><fmt:message key="nav.assets"/></a></li>
+    <li><a href="${ctx}/app/plugin/list"><fmt:message key="nav.plugins"/></a></li>
     <li><a href="${ctx}/app/chat"><fmt:message key="nav.chat"/></a></li>
     <c:if test="${empty me}">
       <li><a href="${ctx}/app/auth/login"><fmt:message key="nav.login"/></a></li>
@@ -15,7 +15,7 @@
     </c:if>
     <c:if test="${not empty me}">
       <c:if test="${me.roleName == 'SELLER' or me.roleName == 'ADMIN'}">
-        <li><a href="${ctx}/app/asset/new"><fmt:message key="nav.new_asset"/></a></li>
+        <li><a href="${ctx}/app/plugin/new"><fmt:message key="nav.new_plugin"/></a></li>
       </c:if>
       <c:if test="${me.roleName == 'ADMIN'}">
         <li><a href="${ctx}/app/admin/reports"><fmt:message key="nav.admin_reports"/></a></li>

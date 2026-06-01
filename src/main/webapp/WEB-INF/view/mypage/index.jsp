@@ -16,22 +16,22 @@
   </p>
 
   <ul class="mypage-summary">
-    <li><strong><c:out value="${fn:length(myAssets)}" default="0"/></strong>
-        <span><fmt:message key="mypage.my_assets"/></span></li>
+    <li><strong><c:out value="${fn:length(myPlugins)}" default="0"/></strong>
+        <span><fmt:message key="mypage.my_plugins"/></span></li>
     <li><strong><c:out value="${fn:length(myOrders)}" default="0"/></strong>
         <span><fmt:message key="mypage.my_orders"/></span></li>
     <li><strong><c:out value="${fn:length(recentDownloads)}" default="0"/></strong>
         <span><fmt:message key="mypage.recent_downloads"/></span></li>
   </ul>
 
-  <%-- ───── My Assets ───── --%>
+  <%-- ───── My Plugins ───── --%>
   <div class="card">
-    <h2><fmt:message key="mypage.my_assets"/></h2>
+    <h2><fmt:message key="mypage.my_plugins"/></h2>
     <c:choose>
-      <c:when test="${empty myAssets}">
+      <c:when test="${empty myPlugins}">
         <p class="empty">
           아직 등록한 자산이 없습니다 —
-          <a href="${ctx}/app/asset/new">자산 등록하기</a>
+          <a href="${ctx}/app/plugin/new">자산 등록하기</a>
         </p>
       </c:when>
       <c:otherwise>
@@ -40,9 +40,9 @@
             <tr><th>제목</th><th>종류</th><th>상태</th><th>가격</th><th>조회/다운로드</th><th></th></tr>
           </thead>
           <tbody>
-            <c:forEach var="a" items="${myAssets}">
+            <c:forEach var="a" items="${myPlugins}">
               <tr>
-                <td><a href="${ctx}/app/asset/detail?id=${a.id}"><c:out value="${a.title}"/></a></td>
+                <td><a href="${ctx}/app/plugin/detail?id=${a.id}"><c:out value="${a.title}"/></a></td>
                 <td><c:out value="${a.typeName}"/></td>
                 <td><c:out value="${a.statusName}"/></td>
                 <td>
@@ -52,7 +52,7 @@
                   </c:choose>
                 </td>
                 <td><c:out value="${a.viewCount}"/> / <c:out value="${a.downloadCount}"/></td>
-                <td><a href="${ctx}/app/asset/edit?id=${a.id}">편집</a></td>
+                <td><a href="${ctx}/app/plugin/edit?id=${a.id}">편집</a></td>
               </tr>
             </c:forEach>
           </tbody>
@@ -68,7 +68,7 @@
       <c:when test="${empty myOrders}">
         <p class="empty">
           아직 구매한 자산이 없습니다 —
-          <a href="${ctx}/app/asset/list">자산 둘러보기</a>
+          <a href="${ctx}/app/plugin/list">자산 둘러보기</a>
         </p>
       </c:when>
       <c:otherwise>
@@ -114,7 +114,7 @@
         <ul class="dl-list">
           <c:forEach var="d" items="${recentDownloads}">
             <li>
-              <a href="${ctx}/app/asset/detail?id=${d.id}"><c:out value="${d.title}"/></a>
+              <a href="${ctx}/app/plugin/detail?id=${d.id}"><c:out value="${d.title}"/></a>
               <small>· <c:out value="${d.typeName}"/></small>
             </li>
           </c:forEach>

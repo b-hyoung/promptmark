@@ -1,4 +1,4 @@
-package local.promptmark.web.action.asset;
+package local.promptmark.web.action.plugin;
 
 import java.util.Collections;
 
@@ -9,7 +9,7 @@ import local.promptmark.dao.TagDao;
 import local.promptmark.web.Action;
 import local.promptmark.web.ViewResult;
 
-/** GET {@code /app/asset/new} — empty form for asset creation. */
+/** GET {@code /app/plugin/new} — empty form for plugin creation. */
 public class CreateFormAction implements Action {
 
     private final TagDao tagDao;
@@ -24,6 +24,6 @@ public class CreateFormAction implements Action {
         req.setAttribute("tags", tagDao.findAllOrLimit(100));
         req.setAttribute("form", Collections.emptyMap());
         req.setAttribute("errors", Collections.emptyMap());
-        return ViewResult.forward("asset/form");
+        return ViewResult.forward("plugin/form");
     }
 }

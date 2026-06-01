@@ -1,34 +1,34 @@
-package local.promptmark.web.action.asset;
+package local.promptmark.web.action.plugin;
 
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetType;
-import local.promptmark.service.AssetService;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginType;
+import local.promptmark.service.PluginService;
 import local.promptmark.web.Action;
 import local.promptmark.web.ViewResult;
 
 /**
- * GET {@code /app/asset/list} — paginated, filtered catalogue.
+ * GET {@code /app/plugin/list} — paginated, filtered catalogue.
  * Query params: {@code q}, {@code type}, {@code tag}, {@code sort}, {@code page}.
  */
 public class ListAction implements Action {
 
     private static final int PAGE_SIZE = 12;
 
-    private final AssetService assetService;
+    private final PluginService pluginService;
 
-    public ListAction(AssetService assetService) {
-        this.assetService = assetService;
+    public ListAction(PluginService pluginService) {
+        this.pluginService = pluginService;
     }
 
     @Override
     public ViewResult execute(HttpServletRequest req, HttpServletResponse res) {
         String q = trimToNull(req.getParameter("q"));
-        AssetType type = parseType(req.getParameter("type"));
+        PluginType type = parseType(req.getParameter("type"));
         String tag = trimToNull(req.getParameter("tag"));
         String sort = req.getParameter("sort");
         if (sort == null || sort.isEmpty()) sort = "recent";
@@ -36,11 +36,11 @@ public class ListAction implements Action {
         int page = parsePage(req.getParameter("page"));
         int offset = (page - 1) * PAGE_SIZE;
 
-        List<Asset> assets = assetService.search(q, type, tag, sort, offset, PAGE_SIZE);
-        int total = assetService.countSearch(q, type, tag);
+        List<Plugin> plugins = pluginService.search(q, type, tag, sort, offset, PAGE_SIZE);
+        int total = pluginService.countSearch(q, type, tag);
         int totalPages = total == 0 ? 1 : (total + PAGE_SIZE - 1) / PAGE_SIZE;
 
-        req.setAttribute("assets", assets);
+        req.setAttribute("plugins", plugins);
         req.setAttribute("total", total);
         req.setAttribute("page", page);
         req.setAttribute("pageSize", PAGE_SIZE);
@@ -50,14 +50,14 @@ public class ListAction implements Action {
         req.setAttribute("tag", tag == null ? "" : tag);
         req.setAttribute("sort", sort);
 
-        return ViewResult.forward("asset/list");
+        return ViewResult.forward("plugin/list");
     }
 
-    private static AssetType parseType(String s) {
+    private static PluginType parseType(String s) {
         if (s == null) return null;
         String t = s.trim().toUpperCase();
         if (t.isEmpty()) return null;
-        try { return AssetType.valueOf(t); } catch (IllegalArgumentException e) { return null; }
+        try { return PluginType.valueOf(t); } catch (IllegalArgumentException e) { return null; }
     }
 
     private static int parsePage(String s) {

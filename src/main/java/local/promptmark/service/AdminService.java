@@ -8,10 +8,10 @@ import java.util.Optional;
 
 import javax.sql.DataSource;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.ReportDao;
 import local.promptmark.dao.UserDao;
-import local.promptmark.dto.AssetStatus;
+import local.promptmark.dto.PluginStatus;
 import local.promptmark.dto.ReportRow;
 import local.promptmark.dto.User;
 import local.promptmark.web.NotFoundException;
@@ -20,7 +20,7 @@ import local.promptmark.web.ValidationException;
 /**
  * Admin operations: report queue, resolve/reject, and user ban. Encapsulates
  * the small bit of transactional glue between {@link ReportDao} and {@link
- * AssetDao} (resolving a report often flips the asset's status, and both
+ * PluginDao} (resolving a report often flips the plugin's status, and both
  * updates must succeed or fail together).
  */
 public class AdminService {
@@ -32,18 +32,18 @@ public class AdminService {
 
     private final DataSource ds;
     private final ReportDao reportDao;
-    @SuppressWarnings("unused") // assetDao is used through inline SQL so we
+    @SuppressWarnings("unused") // pluginDao is used through inline SQL so we
     // keep a reference around for future direct calls without breaking the API.
-    private final AssetDao assetDao;
+    private final PluginDao pluginDao;
     private final UserDao userDao;
 
     public AdminService(DataSource ds,
                         ReportDao reportDao,
-                        AssetDao assetDao,
+                        PluginDao pluginDao,
                         UserDao userDao) {
         this.ds = ds;
         this.reportDao = reportDao;
-        this.assetDao = assetDao;
+        this.pluginDao = pluginDao;
         this.userDao = userDao;
     }
 
@@ -53,8 +53,8 @@ public class AdminService {
     }
 
     /**
-     * Apply an admin action to a report. {@code HIDE} sets the asset to
-     * HIDDEN, {@code DELETE} soft-deletes the asset, {@code REJECT} just
+     * Apply an admin action to a report. {@code HIDE} sets the plugin to
+     * HIDDEN, {@code DELETE} soft-deletes the plugin, {@code REJECT} just
      * closes the report. All paths run in a single transaction.
      *
      * @throws ValidationException when {@code action} is not one of the three values
@@ -73,11 +73,11 @@ public class AdminService {
                 java.util.Collections.singletonMap("action", "invalid"));
         }
 
-        Optional<Long> assetIdOpt = reportDao.findAssetId(reportId);
-        if (!assetIdOpt.isPresent()) {
+        Optional<Long> pluginIdOpt = reportDao.findPluginId(reportId);
+        if (!pluginIdOpt.isPresent()) {
             throw new NotFoundException("신고를 찾을 수 없습니다");
         }
-        long assetId = assetIdOpt.get();
+        long pluginId = pluginIdOpt.get();
 
         try (Connection c = ds.getConnection()) {
             boolean prevAuto = c.getAutoCommit();
@@ -85,11 +85,11 @@ public class AdminService {
             try {
                 switch (act) {
                     case ACTION_HIDE:
-                        updateAssetStatus(c, assetId, AssetStatus.HIDDEN.name());
+                        updatePluginStatus(c, pluginId, PluginStatus.HIDDEN.name());
                         reportDao.resolve(reportId, "RESOLVED", c);
                         break;
                     case ACTION_DELETE:
-                        updateAssetStatus(c, assetId, AssetStatus.DELETED.name());
+                        updatePluginStatus(c, pluginId, PluginStatus.DELETED.name());
                         reportDao.resolve(reportId, "RESOLVED", c);
                         break;
                     case ACTION_REJECT:
@@ -125,17 +125,17 @@ public class AdminService {
     }
 
     /**
-     * Inline transactional asset.status update — the existing AssetDao
+     * Inline transactional plugin.status update — the existing PluginDao
      * mutators all open their own connection, which would break the report
      * transaction. We bundle the update with the resolve so a failing one
      * rolls the other back.
      */
-    private static void updateAssetStatus(Connection c, long assetId, String newStatus)
+    private static void updatePluginStatus(Connection c, long pluginId, String newStatus)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
-                "UPDATE assets SET status = ?, updated_at = now() WHERE id = ?")) {
+                "UPDATE plugins SET status = ?, updated_at = now() WHERE id = ?")) {
             ps.setString(1, newStatus);
-            ps.setLong(2, assetId);
+            ps.setLong(2, pluginId);
             ps.executeUpdate();
         }
     }

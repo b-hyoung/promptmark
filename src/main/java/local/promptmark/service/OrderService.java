@@ -7,10 +7,10 @@ import java.util.Optional;
 
 import javax.sql.DataSource;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.OrderDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
 import local.promptmark.dto.CartItem;
 import local.promptmark.dto.LoginUser;
 import local.promptmark.dto.Order;
@@ -23,24 +23,24 @@ import local.promptmark.web.Role;
 
 /**
  * Mock-payment checkout flow. {@link #placeOrder(LoginUser, List)} re-fetches
- * every cart asset from the DB so we never trust the session snapshot for the
+ * every cart plugin from the DB so we never trust the session snapshot for the
  * price or status, then writes the order + items in one transaction.
  */
 public class OrderService {
 
     private final DataSource ds;
-    private final AssetDao assetDao;
+    private final PluginDao pluginDao;
     private final OrderDao orderDao;
 
-    public OrderService(DataSource ds, AssetDao assetDao, OrderDao orderDao) {
+    public OrderService(DataSource ds, PluginDao pluginDao, OrderDao orderDao) {
         this.ds = ds;
-        this.assetDao = assetDao;
+        this.pluginDao = pluginDao;
         this.orderDao = orderDao;
     }
 
     /**
      * Validate every cart item, sum the live price, then write the order. On
-     * any per-item failure (hidden/deleted asset, buyer is the seller, asset
+     * any per-item failure (hidden/deleted plugin, buyer is the seller, plugin
      * already purchased) throws {@link ConflictException} with a message that
      * names the offending title so the UI can surface it.
      */
@@ -53,10 +53,10 @@ public class OrderService {
         int total = 0;
         // Validate up front before opening the tx so we don't roll back work.
         for (CartItem item : cart) {
-            Asset live = assetDao.findById(item.getAssetId())
+            Plugin live = pluginDao.findById(item.getPluginId())
                 .orElseThrow(() -> new ConflictException(
                     "자산을 찾을 수 없습니다: " + item.getTitle()));
-            if (live.getStatus() != AssetStatus.PUBLIC) {
+            if (live.getStatus() != PluginStatus.PUBLIC) {
                 throw new ConflictException("판매중인 자산이 아닙니다: " + live.getTitle());
             }
             if (live.getSellerId() == buyer.getId()) {
@@ -74,7 +74,7 @@ public class OrderService {
             try {
                 long orderId = orderDao.insertOrder(buyer.getId(), total, OrderStatus.PAID, c);
                 for (CartItem item : cart) {
-                    Asset live = assetDao.findById(item.getAssetId())
+                    Plugin live = pluginDao.findById(item.getPluginId())
                         .orElseThrow(() -> new ConflictException(
                             "자산을 찾을 수 없습니다: " + item.getTitle()));
                     orderDao.insertOrderItem(orderId, live.getId(), live.getPrice(), c);

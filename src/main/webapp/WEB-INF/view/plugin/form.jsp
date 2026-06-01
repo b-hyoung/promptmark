@@ -5,18 +5,18 @@
 <c:choose>
   <c:when test="${mode == 'edit'}">
     <c:set var="pageTitle" value="자산 수정 — promptmark"/>
-    <c:set var="formAction" value="${ctx}/app/asset/edit?id=${assetId}&csrf_token=${csrf}"/>
+    <c:set var="formAction" value="${ctx}/app/plugin/edit?id=${pluginId}&csrf_token=${csrf}"/>
     <c:set var="submitLabel" value="수정 저장"/>
   </c:when>
   <c:otherwise>
     <c:set var="pageTitle" value="자산 등록 — promptmark"/>
-    <c:set var="formAction" value="${ctx}/app/asset/new?csrf_token=${csrf}"/>
+    <c:set var="formAction" value="${ctx}/app/plugin/new?csrf_token=${csrf}"/>
     <c:set var="submitLabel" value="등록"/>
   </c:otherwise>
 </c:choose>
 <%@ include file="/WEB-INF/view/layout/header.jsp" %>
 
-<section class="asset-form">
+<section class="plugin-form">
   <h1>${pageTitle}</h1>
 
   <c:if test="${not empty errorMessage}">
@@ -79,8 +79,8 @@
     <div class="field" id="file-field">
       <label for="file">마크다운 파일 (.md)</label>
       <input id="file" name="file" type="file" accept=".md,text/markdown,text/plain">
-      <c:if test="${mode == 'edit' and not empty asset and not empty asset.fileKey}">
-        <small>현재 파일: <code><c:out value="${asset.fileKey}"/></code> (새 파일을 선택하지 않으면 그대로 유지)</small>
+      <c:if test="${mode == 'edit' and not empty plugin and not empty plugin.fileKey}">
+        <small>현재 파일: <code><c:out value="${plugin.fileKey}"/></code> (새 파일을 선택하지 않으면 그대로 유지)</small>
       </c:if>
       <c:if test="${not empty errors.file}">
         <small class="field-error"><c:out value="${errors.file}"/></small>

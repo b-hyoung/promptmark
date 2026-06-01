@@ -14,11 +14,11 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.TagDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.LoginUser;
 import local.promptmark.service.llm.DisabledEmbeddingClient;
 import local.promptmark.service.llm.EmbeddingClient;
@@ -29,14 +29,14 @@ import local.promptmark.web.Role;
 import local.promptmark.web.ValidationException;
 
 /**
- * Asset CRUD + search. Validation rules live here (not the DAO) so all entry
+ * Plugin CRUD + search. Validation rules live here (not the DAO) so all entry
  * points share the same field error map. Wrap-in-transaction is done for
- * create/edit so the asset insert and the asset_tags rebuild succeed or fail
+ * create/edit so the plugin insert and the plugin_tags rebuild succeed or fail
  * together.
  */
-public class AssetService {
+public class PluginService {
 
-    private static final Logger log = LoggerFactory.getLogger(AssetService.class);
+    private static final Logger log = LoggerFactory.getLogger(PluginService.class);
 
     private static final int TITLE_MIN = 2;
     private static final int TITLE_MAX = 120;
@@ -49,36 +49,36 @@ public class AssetService {
         "^https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+$");
 
     private final DataSource ds;
-    private final AssetDao assetDao;
+    private final PluginDao pluginDao;
     private final TagDao tagDao;
     private final EmbeddingClient embeddingClient;
 
     /** Backwards-compatible constructor; embedding generation is disabled. */
-    public AssetService(DataSource ds, AssetDao assetDao, TagDao tagDao) {
-        this(ds, assetDao, tagDao, new DisabledEmbeddingClient());
+    public PluginService(DataSource ds, PluginDao pluginDao, TagDao tagDao) {
+        this(ds, pluginDao, tagDao, new DisabledEmbeddingClient());
     }
 
-    public AssetService(DataSource ds, AssetDao assetDao, TagDao tagDao,
+    public PluginService(DataSource ds, PluginDao pluginDao, TagDao tagDao,
                         EmbeddingClient embeddingClient) {
         this.ds = ds;
-        this.assetDao = assetDao;
+        this.pluginDao = pluginDao;
         this.tagDao = tagDao;
         this.embeddingClient = (embeddingClient == null)
             ? new DisabledEmbeddingClient() : embeddingClient;
     }
 
     /**
-     * Validate inputs, insert asset, persist tags — all in one tx so a tag
-     * failure rolls the asset row back too. Returns the new asset's id.
+     * Validate inputs, insert plugin, persist tags — all in one tx so a tag
+     * failure rolls the plugin row back too. Returns the new plugin's id.
      */
-    public long createAsset(LoginUser seller,
+    public long createPlugin(LoginUser seller,
                             Map<String, String> form,
                             String body,
                             String fileKey,
                             List<String> tags) {
         if (seller == null) throw new ForbiddenException("로그인이 필요합니다");
 
-        AssetType type = parseType(form);
+        PluginType type = parseType(form);
         Map<String, String> errors = validate(form, type, body, fileKey);
         if (!errors.isEmpty()) {
             throw new ValidationException("입력값을 확인해주세요", errors);
@@ -89,20 +89,20 @@ public class AssetService {
         String demoUrl  = trimOrNull(form.get("demo_url"));
         String videoUrl = trimOrNull(form.get("video_url"));
         int price       = parsePrice(form.get("price"));
-        String bodyVal  = type == AssetType.PROMPT ? body : null;
-        String fileVal  = type == AssetType.MD ? fileKey : null;
+        String bodyVal  = type == PluginType.PROMPT ? body : null;
+        String fileVal  = type == PluginType.MD ? fileKey : null;
 
-        Asset draft = new Asset(0L, seller.getId(), type, title, summary,
+        Plugin draft = new Plugin(0L, seller.getId(), type, title, summary,
             bodyVal, fileVal, demoUrl, videoUrl, price,
-            AssetStatus.PUBLIC, 0, 0, null, null);
+            PluginStatus.PUBLIC, 0, 0, null, null);
 
         long newId;
         try (Connection c = ds.getConnection()) {
             boolean prevAutoCommit = c.getAutoCommit();
             c.setAutoCommit(false);
             try {
-                newId = assetDao.insert(draft);
-                tagDao.replaceForAsset(newId, tags, c);
+                newId = pluginDao.insert(draft);
+                tagDao.replaceForPlugin(newId, tags, c);
                 c.commit();
             } catch (RuntimeException ex) {
                 c.rollback();
@@ -111,48 +111,48 @@ public class AssetService {
                 c.setAutoCommit(prevAutoCommit);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("createAsset failed: " + e.getMessage(), e);
+            throw new RuntimeException("createPlugin failed: " + e.getMessage(), e);
         }
 
         // Best-effort embedding generation after the transactional commit.
-        // Failures here MUST NOT roll the asset back — log + continue.
+        // Failures here MUST NOT roll the plugin back — log + continue.
         tryUpdateEmbedding(newId, title, summary, bodyVal);
         return newId;
     }
 
     /** Fetch + bump view count. NotFound when missing or DELETED. */
-    public Asset getDetailAndIncrementView(long id) {
-        Optional<Asset> opt = assetDao.findById(id);
+    public Plugin getDetailAndIncrementView(long id) {
+        Optional<Plugin> opt = pluginDao.findById(id);
         if (!opt.isPresent()) {
             throw new NotFoundException("자산을 찾을 수 없습니다");
         }
-        assetDao.incrementViewCount(id);
+        pluginDao.incrementViewCount(id);
         return opt.get();
     }
 
     /**
-     * Fetch an asset for the edit/delete flow. Non-owner non-ADMIN gets a
+     * Fetch an plugin for the edit/delete flow. Non-owner non-ADMIN gets a
      * forbidden response (rather than 404) so they can't probe ids.
      */
-    public Asset getEditable(long id, LoginUser owner) {
+    public Plugin getEditable(long id, LoginUser owner) {
         if (owner == null) throw new ForbiddenException("로그인이 필요합니다");
         if (owner.getRole() == Role.ADMIN) {
-            return assetDao.findById(id)
+            return pluginDao.findById(id)
                 .orElseThrow(() -> new NotFoundException("자산을 찾을 수 없습니다"));
         }
-        return assetDao.findByIdForOwner(id, owner.getId())
+        return pluginDao.findByIdForOwner(id, owner.getId())
             .orElseThrow(() -> new ForbiddenException("해당 자산을 편집할 권한이 없습니다"));
     }
 
-    public void editAsset(long id,
+    public void editPlugin(long id,
                           LoginUser owner,
                           Map<String, String> form,
                           String body,
                           String fileKey,
                           List<String> tags) {
-        Asset existing = getEditable(id, owner);
+        Plugin existing = getEditable(id, owner);
 
-        AssetType type = existing.getType(); // type is immutable post-create
+        PluginType type = existing.getType(); // type is immutable post-create
         Map<String, String> errors = validate(form, type, body, fileKey);
         if (!errors.isEmpty()) {
             throw new ValidationException("입력값을 확인해주세요", errors);
@@ -163,9 +163,9 @@ public class AssetService {
         String demoUrl  = trimOrNull(form.get("demo_url"));
         String videoUrl = trimOrNull(form.get("video_url"));
         int price       = parsePrice(form.get("price"));
-        String bodyVal  = type == AssetType.PROMPT ? body : null;
+        String bodyVal  = type == PluginType.PROMPT ? body : null;
         // Allow MD edits without a new upload — keep the existing key.
-        String fileVal  = type == AssetType.MD
+        String fileVal  = type == PluginType.MD
             ? (fileKey != null && !fileKey.isEmpty() ? fileKey : existing.getFileKey())
             : null;
 
@@ -173,9 +173,9 @@ public class AssetService {
             boolean prev = c.getAutoCommit();
             c.setAutoCommit(false);
             try {
-                assetDao.update(existing.getId(), title, summary, bodyVal,
+                pluginDao.update(existing.getId(), title, summary, bodyVal,
                     fileVal, demoUrl, videoUrl, price);
-                tagDao.replaceForAsset(existing.getId(), tags, c);
+                tagDao.replaceForPlugin(existing.getId(), tags, c);
                 c.commit();
             } catch (RuntimeException ex) {
                 c.rollback();
@@ -184,7 +184,7 @@ public class AssetService {
                 c.setAutoCommit(prev);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("editAsset failed: " + e.getMessage(), e);
+            throw new RuntimeException("editPlugin failed: " + e.getMessage(), e);
         }
 
         // Re-embed after a successful edit; same best-effort policy as create.
@@ -193,11 +193,11 @@ public class AssetService {
 
     /**
      * Build the embedding text ({@code title + summary + body_preview(<=500)})
-     * and persist the vector to the {@code assets.embedding} column. Any
+     * and persist the vector to the {@code plugins.embedding} column. Any
      * failure is logged and swallowed — embedding is best-effort metadata, not
-     * a correctness invariant of the asset row.
+     * a correctness invariant of the plugin row.
      */
-    private void tryUpdateEmbedding(long assetId, String title, String summary, String body) {
+    private void tryUpdateEmbedding(long pluginId, String title, String summary, String body) {
         if (embeddingClient == null || !embeddingClient.enabled()) return;
         StringBuilder sb = new StringBuilder();
         if (title != null) sb.append(title);
@@ -214,37 +214,37 @@ public class AssetService {
         try {
             float[] vec = embeddingClient.embed(text);
             if (vec != null && vec.length > 0) {
-                assetDao.updateEmbedding(assetId, vec);
+                pluginDao.updateEmbedding(pluginId, vec);
             }
         } catch (LlmException e) {
-            log.warn("embedding update failed for asset {}: {}", assetId, e.getMessage());
+            log.warn("embedding update failed for plugin {}: {}", pluginId, e.getMessage());
         } catch (RuntimeException e) {
-            log.warn("embedding update threw unexpectedly for asset {}: {}",
-                assetId, e.getMessage(), e);
+            log.warn("embedding update threw unexpectedly for plugin {}: {}",
+                pluginId, e.getMessage(), e);
         }
     }
 
-    public void deleteAsset(long id, LoginUser owner) {
+    public void deletePlugin(long id, LoginUser owner) {
         // Reuses getEditable for the owner / ADMIN check.
-        Asset existing = getEditable(id, owner);
-        assetDao.softDelete(existing.getId());
+        Plugin existing = getEditable(id, owner);
+        pluginDao.softDelete(existing.getId());
     }
 
-    public List<Asset> search(String q, AssetType type, String tag,
+    public List<Plugin> search(String q, PluginType type, String tag,
                               String sort, int offset, int limit) {
         int safeLimit = clamp(limit, 1, 50);
         int safeOffset = Math.max(0, offset);
-        return assetDao.search(q, type, tag, sort, safeOffset, safeLimit);
+        return pluginDao.search(q, type, tag, sort, safeOffset, safeLimit);
     }
 
-    public int countSearch(String q, AssetType type, String tag) {
-        return assetDao.countSearch(q, type, tag);
+    public int countSearch(String q, PluginType type, String tag) {
+        return pluginDao.countSearch(q, type, tag);
     }
 
     // ───── validation ─────────────────────────────────────────────────
 
     private static Map<String, String> validate(Map<String, String> form,
-                                                AssetType type,
+                                                PluginType type,
                                                 String body,
                                                 String fileKey) {
         Map<String, String> errors = new LinkedHashMap<>();
@@ -274,11 +274,11 @@ public class AssetService {
 
         if (type == null) {
             errors.put("type", "자산 종류를 선택하세요");
-        } else if (type == AssetType.PROMPT) {
+        } else if (type == PluginType.PROMPT) {
             if (body == null || body.trim().isEmpty()) {
                 errors.put("body", "프롬프트 본문을 입력하세요");
             }
-        } else if (type == AssetType.MD) {
+        } else if (type == PluginType.MD) {
             if (fileKey == null || fileKey.isEmpty()) {
                 errors.put("file", "마크다운 파일을 첨부하세요");
             }
@@ -304,12 +304,12 @@ public class AssetService {
         }
     }
 
-    private static AssetType parseType(Map<String, String> form) {
+    private static PluginType parseType(Map<String, String> form) {
         if (form == null) return null;
         String t = form.get("type");
         if (t == null) return null;
         try {
-            return AssetType.valueOf(t.trim().toUpperCase());
+            return PluginType.valueOf(t.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
             return null;
         }

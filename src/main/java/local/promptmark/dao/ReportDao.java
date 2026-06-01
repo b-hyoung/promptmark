@@ -11,8 +11,8 @@ import java.util.Optional;
 
 import javax.sql.DataSource;
 
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.ReportRow;
 
 /**
@@ -31,12 +31,12 @@ public class ReportDao {
         this.ds = ds;
     }
 
-    public void insert(long reporterId, long assetId, String reason) {
+    public void insert(long reporterId, long pluginId, String reason) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                 "INSERT INTO reports (reporter_id, asset_id, reason) VALUES (?, ?, ?)")) {
+                 "INSERT INTO reports (reporter_id, plugin_id, reason) VALUES (?, ?, ?)")) {
             ps.setLong(1, reporterId);
-            ps.setLong(2, assetId);
+            ps.setLong(2, pluginId);
             ps.setString(3, reason);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -45,18 +45,18 @@ public class ReportDao {
     }
 
     /**
-     * Open reports for the admin queue, joined with assets + users so the JSP
+     * Open reports for the admin queue, joined with plugins + users so the JSP
      * can render context. Most recent first.
      */
     public List<ReportRow> findOpen(int limit) {
         int safeLimit = Math.max(1, limit);
         String sql =
             "SELECT r.id AS report_id, r.reason, r.created_at AS reported_at, " +
-            "       a.id AS asset_id, a.title AS asset_title, a.type AS asset_type, " +
-            "       a.status AS asset_status, " +
+            "       a.id AS plugin_id, a.title AS plugin_title, a.type AS plugin_type, " +
+            "       a.status AS plugin_status, " +
             "       u.id AS reporter_id, u.nickname AS reporter_nickname " +
             "FROM reports r " +
-            "JOIN assets a ON a.id = r.asset_id " +
+            "JOIN plugins a ON a.id = r.plugin_id " +
             "JOIN users  u ON u.id = r.reporter_id " +
             "WHERE r.status = 'OPEN' " +
             "ORDER BY r.created_at DESC, r.id DESC LIMIT ?";
@@ -71,10 +71,10 @@ public class ReportDao {
                         rs.getLong("report_id"),
                         rs.getString("reason"),
                         ts == null ? null : ts.toInstant(),
-                        rs.getLong("asset_id"),
-                        rs.getString("asset_title"),
-                        AssetType.fromDb(rs.getString("asset_type")),
-                        AssetStatus.fromDb(rs.getString("asset_status")),
+                        rs.getLong("plugin_id"),
+                        rs.getString("plugin_title"),
+                        PluginType.fromDb(rs.getString("plugin_type")),
+                        PluginStatus.fromDb(rs.getString("plugin_status")),
                         rs.getLong("reporter_id"),
                         rs.getString("reporter_nickname")
                     ));
@@ -110,20 +110,20 @@ public class ReportDao {
     }
 
     /**
-     * Look up the reported asset id without pulling the full row. Used by the
-     * resolve flow before flipping {@code assets.status}.
+     * Look up the reported plugin id without pulling the full row. Used by the
+     * resolve flow before flipping {@code plugins.status}.
      */
-    public Optional<Long> findAssetId(long reportId) {
+    public Optional<Long> findPluginId(long reportId) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                 "SELECT asset_id FROM reports WHERE id = ?")) {
+                 "SELECT plugin_id FROM reports WHERE id = ?")) {
             ps.setLong(1, reportId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
                 return Optional.of(rs.getLong(1));
             }
         } catch (SQLException e) {
-            throw new RuntimeException("findAssetId failed: " + e.getMessage(), e);
+            throw new RuntimeException("findPluginId failed: " + e.getMessage(), e);
         }
     }
 }

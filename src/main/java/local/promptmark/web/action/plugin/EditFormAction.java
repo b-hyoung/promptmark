@@ -1,4 +1,4 @@
-package local.promptmark.web.action.asset;
+package local.promptmark.web.action.plugin;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,23 +8,23 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import local.promptmark.dao.TagDao;
-import local.promptmark.dto.Asset;
+import local.promptmark.dto.Plugin;
 import local.promptmark.dto.LoginUser;
 import local.promptmark.dto.Tag;
-import local.promptmark.service.AssetService;
+import local.promptmark.service.PluginService;
 import local.promptmark.web.Action;
 import local.promptmark.web.AuthFilter;
 import local.promptmark.web.NotFoundException;
 import local.promptmark.web.ViewResult;
 
-/** GET {@code /app/asset/edit?id=N} — pre-filled form for the owner. */
+/** GET {@code /app/plugin/edit?id=N} — pre-filled form for the owner. */
 public class EditFormAction implements Action {
 
-    private final AssetService assetService;
+    private final PluginService pluginService;
     private final TagDao tagDao;
 
-    public EditFormAction(AssetService assetService, TagDao tagDao) {
-        this.assetService = assetService;
+    public EditFormAction(PluginService pluginService, TagDao tagDao) {
+        this.pluginService = pluginService;
         this.tagDao = tagDao;
     }
 
@@ -33,7 +33,7 @@ public class EditFormAction implements Action {
         LoginUser me = (LoginUser) req.getSession().getAttribute(AuthFilter.LOGIN_USER_ATTR);
         long id = parseLong(req.getParameter("id"));
 
-        Asset a = assetService.getEditable(id, me);
+        Plugin a = pluginService.getEditable(id, me);
 
         Map<String, String> form = new LinkedHashMap<>();
         form.put("type",      a.getType().name());
@@ -43,21 +43,21 @@ public class EditFormAction implements Action {
         form.put("demo_url",  a.getDemoUrl() == null ? "" : a.getDemoUrl());
         form.put("video_url", a.getVideoUrl() == null ? "" : a.getVideoUrl());
 
-        List<Tag> assetTags = tagDao.findByAssetId(a.getId());
+        List<Tag> pluginTags = tagDao.findByPluginId(a.getId());
         StringBuilder csv = new StringBuilder();
-        for (int i = 0; i < assetTags.size(); i++) {
+        for (int i = 0; i < pluginTags.size(); i++) {
             if (i > 0) csv.append(',');
-            csv.append(assetTags.get(i).getName());
+            csv.append(pluginTags.get(i).getName());
         }
 
         req.setAttribute("mode", "edit");
-        req.setAttribute("assetId", a.getId());
-        req.setAttribute("asset", a);
+        req.setAttribute("pluginId", a.getId());
+        req.setAttribute("plugin", a);
         req.setAttribute("form", form);
         req.setAttribute("body", a.getBody() == null ? "" : a.getBody());
         req.setAttribute("tagsCsv", csv.toString());
         req.setAttribute("tags", tagDao.findAllOrLimit(100));
-        return ViewResult.forward("asset/form");
+        return ViewResult.forward("plugin/form");
     }
 
     private static long parseLong(String s) {

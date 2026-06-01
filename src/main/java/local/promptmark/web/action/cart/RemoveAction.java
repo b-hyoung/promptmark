@@ -11,16 +11,16 @@ import local.promptmark.web.Action;
 import local.promptmark.web.NotFoundException;
 import local.promptmark.web.ViewResult;
 
-/** POST {@code /app/cart/remove?assetId=N} — drop one entry, redirect to view. */
+/** POST {@code /app/cart/remove?pluginId=N} — drop one entry, redirect to view. */
 public class RemoveAction implements Action {
 
     @Override
     public ViewResult execute(HttpServletRequest req, HttpServletResponse res) {
-        long assetId = parseLong(req.getParameter("assetId"));
+        long pluginId = parseLong(req.getParameter("pluginId"));
         List<CartItem> cart = CartSupport.get(req);
         Iterator<CartItem> it = cart.iterator();
         while (it.hasNext()) {
-            if (it.next().getAssetId() == assetId) {
+            if (it.next().getPluginId() == pluginId) {
                 it.remove();
                 break;
             }

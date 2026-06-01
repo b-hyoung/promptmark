@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Slim view of an asset surfaced by the agent. Used for the {@code items[]}
+ * Slim view of an plugin surfaced by the agent. Used for the {@code items[]}
  * array in {@link AgentResult} and the JSON returned from {@link Tools}.
  * Type is held as a string ({@code "PROMPT"} | {@code "MD"}) so JSP / JSON
  * serializers can read it directly without extra mapping.
  */
-public final class AssetCard {
+public final class PluginCard {
 
     private final long id;
     private final String type;
@@ -22,7 +22,7 @@ public final class AssetCard {
     private final List<String> tags;
     private final Double reason;
 
-    public AssetCard(long id, String type, String title, String summary,
+    public PluginCard(long id, String type, String title, String summary,
                      int price, double score, List<String> tags, Double reason) {
         this.id = id;
         this.type = type;

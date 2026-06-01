@@ -10,9 +10,9 @@ class AppExceptionTest {
 
     @Test
     void notFoundCarries404() {
-        AppException e = new NotFoundException("asset not found");
+        AppException e = new NotFoundException("plugin not found");
         assertThat(e.code()).isEqualTo(404);
-        assertThat(e.userMessage()).isEqualTo("asset not found");
+        assertThat(e.userMessage()).isEqualTo("plugin not found");
     }
 
     @Test

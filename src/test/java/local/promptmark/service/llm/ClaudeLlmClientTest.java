@@ -54,7 +54,7 @@ class ClaudeLlmClientTest {
             captured.set(body);
             return new HttpInvoker.Response(200, canned);
         };
-        ToolDef td = new ToolDef("search_assets", "search",
+        ToolDef td = new ToolDef("search_plugins", "search",
             mapper.readTree("{\"type\":\"object\",\"properties\":{}}"));
         ClaudeLlmClient client = new ClaudeLlmClient(
             "ant-test", "claude-haiku-4-5-20251001", invoker);
@@ -66,7 +66,7 @@ class ClaudeLlmClientTest {
         ));
 
         JsonNode body = mapper.readTree(captured.get());
-        assertThat(body.path("tools").get(0).path("name").asText()).isEqualTo("search_assets");
+        assertThat(body.path("tools").get(0).path("name").asText()).isEqualTo("search_plugins");
         assertThat(body.path("tools").get(0).path("input_schema").path("type").asText())
             .isEqualTo("object");
     }
@@ -93,7 +93,7 @@ class ClaudeLlmClientTest {
         ObjectNode use = content.addObject();
         use.put("type", "tool_use");
         use.put("id", "toolu_1");
-        use.put("name", "search_assets");
+        use.put("name", "search_plugins");
         ObjectNode input = use.putObject("input");
         input.put("query", "auto");
         final String responseBody = mapper.writeValueAsString(root);
@@ -108,7 +108,7 @@ class ClaudeLlmClientTest {
 
         assertThat(r.toolCalls()).hasSize(1);
         assertThat(r.toolCalls().get(0).id()).isEqualTo("toolu_1");
-        assertThat(r.toolCalls().get(0).name()).isEqualTo("search_assets");
+        assertThat(r.toolCalls().get(0).name()).isEqualTo("search_plugins");
         assertThat(r.toolCalls().get(0).arguments().path("query").asText()).isEqualTo("auto");
     }
 

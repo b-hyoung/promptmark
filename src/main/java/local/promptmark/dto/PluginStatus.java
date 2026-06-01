@@ -1,13 +1,13 @@
 package local.promptmark.dto;
 
-/** Visibility lifecycle for an asset row. */
-public enum AssetStatus {
+/** Visibility lifecycle for an plugin row. */
+public enum PluginStatus {
     PUBLIC, HIDDEN, DELETED;
 
-    public static AssetStatus fromDb(String s) {
+    public static PluginStatus fromDb(String s) {
         if (s == null) return PUBLIC;
         try {
-            return AssetStatus.valueOf(s.trim().toUpperCase());
+            return PluginStatus.valueOf(s.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             return PUBLIC;
         }

@@ -30,7 +30,7 @@ class LlmAgentTest {
     void setUp() {
         tools = Mockito.mock(Tools.class);
         when(tools.definitions()).thenReturn(Collections.singletonList(
-            new ToolDef("search_assets", "search",
+            new ToolDef("search_plugins", "search",
                 mapper.createObjectNode().put("type", "object"))));
         config = new LlmConfig("openai", "sk-x", "", "", "", "");
     }
@@ -61,12 +61,12 @@ class LlmAgentTest {
         item.put("price", 0);
         item.put("score", 0.9);
         item.putArray("tags").add("AI");
-        when(tools.dispatch(eq("search_assets"), any(JsonNode.class)))
+        when(tools.dispatch(eq("search_plugins"), any(JsonNode.class)))
             .thenReturn(searchResult);
 
         FakeLlmClient client = new FakeLlmClient(
             new LlmReply("assistant", "",
-                Collections.singletonList(new ToolCall("call_1", "search_assets",
+                Collections.singletonList(new ToolCall("call_1", "search_plugins",
                     mapper.readTree("{\"query\":\"자기소개서\"}")))),
             new LlmReply("assistant", "찾았어요. 자기소개서 첨삭 프롬프트가 있어요.",
                 Collections.emptyList())
@@ -81,27 +81,27 @@ class LlmAgentTest {
         assertThat(r.getItems().get(0).getId()).isEqualTo(42L);
         assertThat(r.getItems().get(0).getTitle()).isEqualTo("Test");
         assertThat(r.getTrace()).hasSize(1);
-        assertThat(r.getTrace().get(0).getTool()).isEqualTo("search_assets");
+        assertThat(r.getTrace().get(0).getTool()).isEqualTo("search_plugins");
         assertThat(r.getTrace().get(0).getHits()).isEqualTo(1);
     }
 
     @Test
-    void run_de_duplicates_assets_across_tool_calls() throws Exception {
+    void run_de_duplicates_plugins_across_tool_calls() throws Exception {
         ArrayNode r1 = mapper.createArrayNode();
         addItem(r1, 42, "A");
         ArrayNode r2 = mapper.createArrayNode();
         addItem(r2, 42, "Adup"); // same id
         addItem(r2, 99, "B");
 
-        when(tools.dispatch(eq("search_assets"), any(JsonNode.class)))
+        when(tools.dispatch(eq("search_plugins"), any(JsonNode.class)))
             .thenReturn(r1, r2);
 
         FakeLlmClient client = new FakeLlmClient(
             new LlmReply("assistant", "",
                 Arrays.asList(
-                    new ToolCall("c1", "search_assets",
+                    new ToolCall("c1", "search_plugins",
                         mapper.readTree("{\"query\":\"a\"}")),
-                    new ToolCall("c2", "search_assets",
+                    new ToolCall("c2", "search_plugins",
                         mapper.readTree("{\"query\":\"b\"}"))
                 )),
             new LlmReply("assistant", "done", Collections.emptyList())
@@ -124,7 +124,7 @@ class LlmAgentTest {
         List<LlmReply> replies = new java.util.ArrayList<>();
         for (int i = 0; i < 4; i++) {
             replies.add(new LlmReply("assistant", "",
-                Collections.singletonList(new ToolCall("c" + i, "search_assets",
+                Collections.singletonList(new ToolCall("c" + i, "search_plugins",
                     mapper.readTree("{\"query\":\"x\"}")))));
         }
         replies.add(new LlmReply("assistant", "final", Collections.emptyList()));

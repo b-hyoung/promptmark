@@ -11,23 +11,23 @@ import java.util.Optional;
 
 import javax.sql.DataSource;
 
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.DownloadDao;
 import local.promptmark.dao.OrderDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.LoginUser;
 import local.promptmark.web.ForbiddenException;
 import local.promptmark.web.NotFoundException;
 import local.promptmark.web.Role;
 
 /**
- * Permission check + file resolution for {@code /app/asset/download}.
+ * Permission check + file resolution for {@code /app/plugin/download}.
  *
- * <p>Free assets (price 0) are open to any logged-in user; paid assets require
- * either ownership, an ADMIN session, or a prior PAID order. PROMPT assets
- * return the body as text; MD assets are read from {@code uploads/}.
+ * <p>Free plugins (price 0) are open to any logged-in user; paid plugins require
+ * either ownership, an ADMIN session, or a prior PAID order. PROMPT plugins
+ * return the body as text; MD plugins are read from {@code uploads/}.
  */
 public class DownloadService {
 
@@ -45,36 +45,36 @@ public class DownloadService {
     }
 
     private final DataSource ds;
-    private final AssetDao assetDao;
+    private final PluginDao pluginDao;
     private final OrderDao orderDao;
     private final DownloadDao downloadDao;
 
-    public DownloadService(DataSource ds, AssetDao assetDao,
+    public DownloadService(DataSource ds, PluginDao pluginDao,
                            OrderDao orderDao, DownloadDao downloadDao) {
         this.ds = ds;
-        this.assetDao = assetDao;
+        this.pluginDao = pluginDao;
         this.orderDao = orderDao;
         this.downloadDao = downloadDao;
     }
 
     /**
-     * Look up the asset, check the permission matrix, and read the bytes.
-     * Throws {@link ForbiddenException} for paid assets a user can't access,
-     * and {@link NotFoundException} when the asset is missing or the MD file
+     * Look up the plugin, check the permission matrix, and read the bytes.
+     * Throws {@link ForbiddenException} for paid plugins a user can't access,
+     * and {@link NotFoundException} when the plugin is missing or the MD file
      * is gone from disk.
      */
-    public DownloadPayload resolveDownload(long assetId, LoginUser user) {
+    public DownloadPayload resolveDownload(long pluginId, LoginUser user) {
         if (user == null) throw new ForbiddenException("로그인이 필요합니다");
 
-        Optional<Asset> opt = assetDao.findById(assetId);
+        Optional<Plugin> opt = pluginDao.findById(pluginId);
         if (!opt.isPresent()) {
             throw new NotFoundException("자산을 찾을 수 없습니다");
         }
-        Asset a = opt.get();
+        Plugin a = opt.get();
 
-        if (a.getStatus() != AssetStatus.PUBLIC) {
+        if (a.getStatus() != PluginStatus.PUBLIC) {
             // Owner / admin can still access for sanity but business-wise hidden
-            // assets are no longer downloadable.
+            // plugins are no longer downloadable.
             if (!(user.getRole() == Role.ADMIN || a.getSellerId() == user.getId())) {
                 throw new ForbiddenException("판매중인 자산이 아닙니다");
             }
@@ -89,7 +89,7 @@ public class DownloadService {
             throw new ForbiddenException("다운로드 권한이 없습니다");
         }
 
-        if (a.getType() == AssetType.PROMPT) {
+        if (a.getType() == PluginType.PROMPT) {
             String body = a.getBody() == null ? "" : a.getBody();
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             return new DownloadPayload(a.getTitle() + ".txt", "text/plain; charset=UTF-8", bytes);
@@ -113,14 +113,14 @@ public class DownloadService {
         return new DownloadPayload(fname, "text/markdown; charset=UTF-8", bytes);
     }
 
-    /** Insert a downloads row + bump the asset's download_count in one tx. */
-    public void recordDownload(long assetId, long userId) {
+    /** Insert a downloads row + bump the plugin's download_count in one tx. */
+    public void recordDownload(long pluginId, long userId) {
         try (Connection c = ds.getConnection()) {
             boolean prev = c.getAutoCommit();
             c.setAutoCommit(false);
             try {
-                downloadDao.insert(userId, assetId, c);
-                assetDao.incrementDownloadCount(assetId, c);
+                downloadDao.insert(userId, pluginId, c);
+                pluginDao.incrementDownloadCount(pluginId, c);
                 c.commit();
             } catch (RuntimeException ex) {
                 c.rollback();

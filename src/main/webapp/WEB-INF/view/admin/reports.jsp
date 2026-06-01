@@ -38,12 +38,12 @@
             <tr>
               <td><c:out value="${r.reportId}"/></td>
               <td>
-                <a href="${ctx}/app/asset/detail?id=${r.assetId}">
-                  <c:out value="${r.assetTitle}"/>
+                <a href="${ctx}/app/plugin/detail?id=${r.pluginId}">
+                  <c:out value="${r.pluginTitle}"/>
                 </a>
               </td>
               <td>
-                <c:out value="${r.assetTypeName}"/> / <c:out value="${r.assetStatusName}"/>
+                <c:out value="${r.pluginTypeName}"/> / <c:out value="${r.pluginStatusName}"/>
               </td>
               <td><c:out value="${r.reason}"/></td>
               <td>

@@ -10,9 +10,9 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetStatus;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginStatus;
+import local.promptmark.dto.PluginType;
 
 /**
  * Recorded downloads. Insert participates in the caller's transaction; the
@@ -26,11 +26,11 @@ public class DownloadDao {
         this.ds = ds;
     }
 
-    public void insert(long userId, long assetId, Connection conn) {
+    public void insert(long userId, long pluginId, Connection conn) {
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO downloads (user_id, asset_id) VALUES (?, ?)")) {
+                "INSERT INTO downloads (user_id, plugin_id) VALUES (?, ?)")) {
             ps.setLong(1, userId);
-            ps.setLong(2, assetId);
+            ps.setLong(2, pluginId);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("insert download failed: " + e.getMessage(), e);
@@ -38,15 +38,15 @@ public class DownloadDao {
     }
 
     /**
-     * Most recently downloaded assets for the user. Deduplicates by asset id
+     * Most recently downloaded plugins for the user. Deduplicates by plugin id
      * (a user who pulled the same file twice still sees it once).
      */
-    public List<Asset> findRecentByUser(long userId, int limit) {
+    public List<Plugin> findRecentByUser(long userId, int limit) {
         String sql = "SELECT a.id, a.seller_id, a.type, a.title, a.summary, a.body, " +
                      "       a.file_key, a.demo_url, a.video_url, a.price, a.status, " +
                      "       a.view_count, a.download_count, a.created_at, a.updated_at, " +
                      "       MAX(d.downloaded_at) AS last_at " +
-                     "FROM downloads d JOIN assets a ON a.id = d.asset_id " +
+                     "FROM downloads d JOIN plugins a ON a.id = d.plugin_id " +
                      "WHERE d.user_id = ? AND a.status <> 'DELETED' " +
                      "GROUP BY a.id " +
                      "ORDER BY last_at DESC LIMIT ?";
@@ -55,7 +55,7 @@ public class DownloadDao {
             ps.setLong(1, userId);
             ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
-                List<Asset> out = new ArrayList<>();
+                List<Plugin> out = new ArrayList<>();
                 while (rs.next()) out.add(map(rs));
                 return out;
             }
@@ -64,13 +64,13 @@ public class DownloadDao {
         }
     }
 
-    private static Asset map(ResultSet rs) throws SQLException {
+    private static Plugin map(ResultSet rs) throws SQLException {
         Timestamp created = rs.getTimestamp("created_at");
         Timestamp updated = rs.getTimestamp("updated_at");
-        return new Asset(
+        return new Plugin(
             rs.getLong("id"),
             rs.getLong("seller_id"),
-            AssetType.fromDb(rs.getString("type")),
+            PluginType.fromDb(rs.getString("type")),
             rs.getString("title"),
             rs.getString("summary"),
             rs.getString("body"),
@@ -78,7 +78,7 @@ public class DownloadDao {
             rs.getString("demo_url"),
             rs.getString("video_url"),
             rs.getInt("price"),
-            AssetStatus.fromDb(rs.getString("status")),
+            PluginStatus.fromDb(rs.getString("status")),
             rs.getInt("view_count"),
             rs.getInt("download_count"),
             created == null ? null : created.toInstant(),

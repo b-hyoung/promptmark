@@ -56,7 +56,7 @@ class SchemaApplierIT {
             ResultSet rs = s.executeQuery(
                 "SELECT count(*) FROM information_schema.tables " +
                 "WHERE table_schema='public' AND table_name IN " +
-                "('users','assets','tags','asset_tags','orders','order_items','downloads','reports')");
+                "('users','plugins','tags','plugin_tags','orders','order_items','downloads','reports')");
             rs.next();
             assertThat(rs.getInt(1)).isEqualTo(8);
         }
@@ -74,7 +74,7 @@ class SchemaApplierIT {
         try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
             ResultSet rs = s.executeQuery(
                 "SELECT data_type FROM information_schema.columns " +
-                "WHERE table_name='assets' AND column_name='embedding'");
+                "WHERE table_name='plugins' AND column_name='embedding'");
             rs.next();
             assertThat(rs.getString(1)).isEqualToIgnoringCase("USER-DEFINED");  // vector is a custom type
         }

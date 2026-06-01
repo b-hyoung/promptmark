@@ -1,4 +1,4 @@
-package local.promptmark.web.action.asset;
+package local.promptmark.web.action.plugin;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,9 +12,9 @@ import javax.servlet.http.HttpServletResponse;
 import com.oreilly.servlet.MultipartRequest;
 
 import local.promptmark.dao.TagDao;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.LoginUser;
-import local.promptmark.service.AssetService;
+import local.promptmark.service.PluginService;
 import local.promptmark.web.Action;
 import local.promptmark.web.AuthFilter;
 import local.promptmark.web.UploadUtil;
@@ -22,7 +22,7 @@ import local.promptmark.web.ValidationException;
 import local.promptmark.web.ViewResult;
 
 /**
- * POST {@code /app/asset/new} — multipart asset creation.
+ * POST {@code /app/plugin/new} — multipart plugin creation.
  *
  * <p>Note: because CsrfFilter has to consume the request body before the
  * action runs, multipart parsing here happens against the same body. The
@@ -31,11 +31,11 @@ import local.promptmark.web.ViewResult;
  */
 public class CreateAction implements Action {
 
-    private final AssetService assetService;
+    private final PluginService pluginService;
     private final TagDao tagDao;
 
-    public CreateAction(AssetService assetService, TagDao tagDao) {
-        this.assetService = assetService;
+    public CreateAction(PluginService pluginService, TagDao tagDao) {
+        this.pluginService = pluginService;
         this.tagDao = tagDao;
     }
 
@@ -54,18 +54,18 @@ public class CreateAction implements Action {
         form.put("video_url", UploadUtil.getParam(mr, "video_url", ""));
 
         String body = UploadUtil.getParam(mr, "body", "");
-        AssetType type = parseType(form.get("type"));
+        PluginType type = parseType(form.get("type"));
 
         String fileKey = null;
-        if (type == AssetType.MD) {
+        if (type == PluginType.MD) {
             fileKey = UploadUtil.moveToPermanentStore(mr, "file");
         }
 
         List<String> tags = parseTags(UploadUtil.getParam(mr, "tags", ""));
 
         try {
-            long newId = assetService.createAsset(me, form, body, fileKey, tags);
-            return ViewResult.redirect(req.getContextPath() + "/app/asset/detail?id=" + newId);
+            long newId = pluginService.createPlugin(me, form, body, fileKey, tags);
+            return ViewResult.redirect(req.getContextPath() + "/app/plugin/detail?id=" + newId);
         } catch (ValidationException ve) {
             req.setAttribute("mode", "create");
             req.setAttribute("form", form);
@@ -74,13 +74,13 @@ public class CreateAction implements Action {
             req.setAttribute("errors", ve.fieldErrors());
             req.setAttribute("errorMessage", ve.userMessage());
             req.setAttribute("tags", tagDao.findAllOrLimit(100));
-            return ViewResult.forward("asset/form");
+            return ViewResult.forward("plugin/form");
         }
     }
 
-    private static AssetType parseType(String s) {
+    private static PluginType parseType(String s) {
         if (s == null) return null;
-        try { return AssetType.valueOf(s.trim().toUpperCase()); }
+        try { return PluginType.valueOf(s.trim().toUpperCase()); }
         catch (IllegalArgumentException e) { return null; }
     }
 

@@ -22,21 +22,21 @@ public final class AuthMap {
         m.put("auth.logout",   Role.USER);
 
         // ── Public catalogue ──────────────────────────────────────────
-        m.put("asset.list",     Role.ANONYMOUS);
-        m.put("asset.detail",   Role.ANONYMOUS);
+        m.put("plugin.list",     Role.ANONYMOUS);
+        m.put("plugin.detail",   Role.ANONYMOUS);
 
         // ── Public chat / AI agent ────────────────────────────────────
         m.put("chat.page",      Role.ANONYMOUS);
         m.put("chat.recommend", Role.ANONYMOUS);
 
         // ── Seller CRUD ───────────────────────────────────────────────
-        m.put("asset.new",      Role.SELLER);
-        m.put("asset.edit",     Role.SELLER);
-        m.put("asset.delete",   Role.SELLER);
+        m.put("plugin.new",      Role.SELLER);
+        m.put("plugin.edit",     Role.SELLER);
+        m.put("plugin.delete",   Role.SELLER);
 
         // ── Logged-in interactions ────────────────────────────────────
-        m.put("asset.download", Role.USER);
-        m.put("asset.report",   Role.USER);
+        m.put("plugin.download", Role.USER);
+        m.put("plugin.report",   Role.USER);
         m.put("cart.add",       Role.USER);
         m.put("cart.view",      Role.USER);
         m.put("cart.remove",    Role.USER);

@@ -15,14 +15,14 @@ import org.slf4j.LoggerFactory;
 
 import local.promptmark.config.DataSourceProvider;
 import local.promptmark.config.Env;
-import local.promptmark.dao.AssetDao;
+import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.DownloadDao;
 import local.promptmark.dao.OrderDao;
 import local.promptmark.dao.ReportDao;
 import local.promptmark.dao.TagDao;
 import local.promptmark.dao.UserDao;
 import local.promptmark.service.AdminService;
-import local.promptmark.service.AssetService;
+import local.promptmark.service.PluginService;
 import local.promptmark.service.AuthService;
 import local.promptmark.service.DownloadService;
 import local.promptmark.service.OrderService;
@@ -34,15 +34,15 @@ import local.promptmark.service.llm.LlmConfig;
 import local.promptmark.service.llm.Tools;
 import local.promptmark.web.action.chat.ChatPageAction;
 import local.promptmark.web.action.chat.RecommendAction;
-import local.promptmark.web.action.asset.CreateAction;
-import local.promptmark.web.action.asset.CreateFormAction;
-import local.promptmark.web.action.asset.DeleteAction;
-import local.promptmark.web.action.asset.DetailAction;
-import local.promptmark.web.action.asset.DownloadAction;
-import local.promptmark.web.action.asset.EditAction;
-import local.promptmark.web.action.asset.EditFormAction;
-import local.promptmark.web.action.asset.ListAction;
-import local.promptmark.web.action.asset.ReportAction;
+import local.promptmark.web.action.plugin.CreateAction;
+import local.promptmark.web.action.plugin.CreateFormAction;
+import local.promptmark.web.action.plugin.DeleteAction;
+import local.promptmark.web.action.plugin.DetailAction;
+import local.promptmark.web.action.plugin.DownloadAction;
+import local.promptmark.web.action.plugin.EditAction;
+import local.promptmark.web.action.plugin.EditFormAction;
+import local.promptmark.web.action.plugin.ListAction;
+import local.promptmark.web.action.plugin.ReportAction;
 import local.promptmark.web.action.auth.LoginAction;
 import local.promptmark.web.action.auth.LoginFormAction;
 import local.promptmark.web.action.auth.LogoutAction;
@@ -78,7 +78,7 @@ public class FrontController extends HttpServlet {
         javax.sql.DataSource ds = DataSourceProvider.get();
 
         UserDao userDao = new UserDao(ds);
-        AssetDao assetDao = new AssetDao(ds);
+        PluginDao pluginDao = new PluginDao(ds);
         TagDao tagDao = new TagDao(ds);
         OrderDao orderDao = new OrderDao(ds);
         DownloadDao downloadDao = new DownloadDao(ds);
@@ -88,16 +88,16 @@ public class FrontController extends HttpServlet {
         LlmConfig llmConfig = LlmConfig.fromEnv(Env.load());
         EmbeddingClient embeddingClient = llmConfig.newEmbeddingClient();
         LlmClient llmClient = llmConfig.newLlmClient();
-        Tools tools = new Tools(assetDao, tagDao, userDao, embeddingClient);
+        Tools tools = new Tools(pluginDao, tagDao, userDao, embeddingClient);
         LlmAgent llmAgent = new LlmAgent(llmClient, embeddingClient, tools, llmConfig);
         RecommendService recommendService = new RecommendService(
-            assetDao, tagDao, embeddingClient, llmAgent, llmConfig);
+            pluginDao, tagDao, embeddingClient, llmAgent, llmConfig);
 
         AuthService authService = new AuthService(userDao);
-        AssetService assetService = new AssetService(ds, assetDao, tagDao, embeddingClient);
-        OrderService orderService = new OrderService(ds, assetDao, orderDao);
-        DownloadService downloadService = new DownloadService(ds, assetDao, orderDao, downloadDao);
-        AdminService adminService = new AdminService(ds, reportDao, assetDao, userDao);
+        PluginService pluginService = new PluginService(ds, pluginDao, tagDao, embeddingClient);
+        OrderService orderService = new OrderService(ds, pluginDao, orderDao);
+        DownloadService downloadService = new DownloadService(ds, pluginDao, orderDao, downloadDao);
+        AdminService adminService = new AdminService(ds, reportDao, pluginDao, userDao);
 
         // ── Auth ──────────────────────────────────────────────────────
         registry.put("auth.signup.GET",  new SignupFormAction());
@@ -106,19 +106,19 @@ public class FrontController extends HttpServlet {
         registry.put("auth.login.POST",  new LoginAction(authService));
         registry.put("auth.logout.POST", new LogoutAction());
 
-        // ── Asset ─────────────────────────────────────────────────────
-        registry.put("asset.list.GET",     new ListAction(assetService));
-        registry.put("asset.detail.GET",   new DetailAction(assetService, tagDao, userDao));
-        registry.put("asset.new.GET",      new CreateFormAction(tagDao));
-        registry.put("asset.new.POST",     new CreateAction(assetService, tagDao));
-        registry.put("asset.edit.GET",     new EditFormAction(assetService, tagDao));
-        registry.put("asset.edit.POST",    new EditAction(assetService, tagDao));
-        registry.put("asset.delete.POST",  new DeleteAction(assetService));
-        registry.put("asset.download.GET", new DownloadAction(downloadService));
-        registry.put("asset.report.POST",  new ReportAction(reportDao));
+        // ── Plugin ─────────────────────────────────────────────────────
+        registry.put("plugin.list.GET",     new ListAction(pluginService));
+        registry.put("plugin.detail.GET",   new DetailAction(pluginService, tagDao, userDao));
+        registry.put("plugin.new.GET",      new CreateFormAction(tagDao));
+        registry.put("plugin.new.POST",     new CreateAction(pluginService, tagDao));
+        registry.put("plugin.edit.GET",     new EditFormAction(pluginService, tagDao));
+        registry.put("plugin.edit.POST",    new EditAction(pluginService, tagDao));
+        registry.put("plugin.delete.POST",  new DeleteAction(pluginService));
+        registry.put("plugin.download.GET", new DownloadAction(downloadService));
+        registry.put("plugin.report.POST",  new ReportAction(reportDao));
 
         // ── Cart ──────────────────────────────────────────────────────
-        registry.put("cart.add.POST",    new AddAction(assetDao, orderDao));
+        registry.put("cart.add.POST",    new AddAction(pluginDao, orderDao));
         registry.put("cart.view.GET",    new ViewAction());
         registry.put("cart.remove.POST", new RemoveAction());
 
@@ -133,7 +133,7 @@ public class FrontController extends HttpServlet {
         registry.put("chat.recommend.POST", new RecommendAction(recommendService));
 
         // ── Mypage (Phase 5) ──────────────────────────────────────────
-        registry.put("mypage.index.GET",    new IndexAction(assetDao, orderDao, downloadDao));
+        registry.put("mypage.index.GET",    new IndexAction(pluginDao, orderDao, downloadDao));
 
         // ── Admin (Phase 5) ───────────────────────────────────────────
         registry.put("admin.reports.GET",        new ReportsAction(adminService));

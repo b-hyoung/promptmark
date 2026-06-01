@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  * {@link Tools}. Total wall-clock budget is {@value #BUDGET_SECONDS} seconds.
  *
  * <p>If everything succeeds we package the assistant text + accumulated
- * {@link AssetCard} list + per-tool {@link TraceEntry} into an
+ * {@link PluginCard} list + per-tool {@link TraceEntry} into an
  * {@link AgentResult} with {@code source = "AGENT"}. Any {@link LlmException}
  * propagates up so {@code RecommendService} can fall back to rule mode.
  */
@@ -31,7 +31,7 @@ public final class LlmAgent {
     public static final int BUDGET_SECONDS = 8;
     public static final String SYSTEM_PROMPT =
         "당신은 프롬프트/MD 자산 추천 에이전트입니다. 사용자 요청을 이해하고 "
-        + "search_assets·get_asset_detail 도구로 정보를 수집한 뒤 추천 답변을 생성하세요. "
+        + "search_plugins·get_plugin_detail 도구로 정보를 수집한 뒤 추천 답변을 생성하세요. "
         + "후보가 없으면 솔직히 없다고 답하세요.";
 
     private static final Logger log = LoggerFactory.getLogger(LlmAgent.class);
@@ -66,7 +66,7 @@ public final class LlmAgent {
         messages.add(Message.user(userMessage));
 
         List<TraceEntry> trace = new ArrayList<>();
-        List<AssetCard> items = new ArrayList<>();
+        List<PluginCard> items = new ArrayList<>();
         Set<Long> seenIds = new HashSet<>();
 
         String answer = "";
@@ -110,7 +110,7 @@ public final class LlmAgent {
                 }
 
                 Integer hits = null;
-                if (Tools.TOOL_SEARCH_ASSETS.equals(call.name()) && result.isArray()) {
+                if (Tools.TOOL_SEARCH_PLUGINS.equals(call.name()) && result.isArray()) {
                     hits = result.size();
                     collectCards((ArrayNode) result, items, seenIds);
                 }
@@ -158,7 +158,7 @@ public final class LlmAgent {
         return out;
     }
 
-    private void collectCards(ArrayNode array, List<AssetCard> sink, Set<Long> seen) {
+    private void collectCards(ArrayNode array, List<PluginCard> sink, Set<Long> seen) {
         for (JsonNode n : array) {
             long id = n.path("id").asLong();
             if (id == 0L || seen.contains(id)) continue;
@@ -167,7 +167,7 @@ public final class LlmAgent {
             for (JsonNode t : n.path("tags")) {
                 if (t.isTextual()) tags.add(t.asText());
             }
-            sink.add(new AssetCard(
+            sink.add(new PluginCard(
                 id,
                 n.path("type").asText(""),
                 n.path("title").asText(""),

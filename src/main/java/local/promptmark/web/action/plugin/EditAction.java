@@ -1,4 +1,4 @@
-package local.promptmark.web.action.asset;
+package local.promptmark.web.action.plugin;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,10 +12,10 @@ import javax.servlet.http.HttpServletResponse;
 import com.oreilly.servlet.MultipartRequest;
 
 import local.promptmark.dao.TagDao;
-import local.promptmark.dto.Asset;
-import local.promptmark.dto.AssetType;
+import local.promptmark.dto.Plugin;
+import local.promptmark.dto.PluginType;
 import local.promptmark.dto.LoginUser;
-import local.promptmark.service.AssetService;
+import local.promptmark.service.PluginService;
 import local.promptmark.web.Action;
 import local.promptmark.web.AuthFilter;
 import local.promptmark.web.NotFoundException;
@@ -23,14 +23,14 @@ import local.promptmark.web.UploadUtil;
 import local.promptmark.web.ValidationException;
 import local.promptmark.web.ViewResult;
 
-/** POST {@code /app/asset/edit?id=N} — apply edits + redirect to detail. */
+/** POST {@code /app/plugin/edit?id=N} — apply edits + redirect to detail. */
 public class EditAction implements Action {
 
-    private final AssetService assetService;
+    private final PluginService pluginService;
     private final TagDao tagDao;
 
-    public EditAction(AssetService assetService, TagDao tagDao) {
-        this.assetService = assetService;
+    public EditAction(PluginService pluginService, TagDao tagDao) {
+        this.pluginService = pluginService;
         this.tagDao = tagDao;
     }
 
@@ -39,9 +39,9 @@ public class EditAction implements Action {
         LoginUser me = (LoginUser) req.getSession().getAttribute(AuthFilter.LOGIN_USER_ATTR);
         long id = parseLong(req.getParameter("id"));
 
-        // Fetch the existing asset first so we know its type (immutable) and can
+        // Fetch the existing plugin first so we know its type (immutable) and can
         // re-use the existing file_key if no new file was uploaded.
-        Asset existing = assetService.getEditable(id, me);
+        Plugin existing = pluginService.getEditable(id, me);
 
         MultipartRequest mr = UploadUtil.parse(req);
 
@@ -55,7 +55,7 @@ public class EditAction implements Action {
 
         String body = UploadUtil.getParam(mr, "body", "");
         String fileKey = null;
-        if (existing.getType() == AssetType.MD) {
+        if (existing.getType() == PluginType.MD) {
             String maybe = UploadUtil.moveToPermanentStore(mr, "file");
             fileKey = (maybe == null || maybe.isEmpty()) ? existing.getFileKey() : maybe;
         }
@@ -63,19 +63,19 @@ public class EditAction implements Action {
         List<String> tags = parseTags(UploadUtil.getParam(mr, "tags", ""));
 
         try {
-            assetService.editAsset(id, me, form, body, fileKey, tags);
-            return ViewResult.redirect(req.getContextPath() + "/app/asset/detail?id=" + id);
+            pluginService.editPlugin(id, me, form, body, fileKey, tags);
+            return ViewResult.redirect(req.getContextPath() + "/app/plugin/detail?id=" + id);
         } catch (ValidationException ve) {
             req.setAttribute("mode", "edit");
-            req.setAttribute("assetId", id);
-            req.setAttribute("asset", existing);
+            req.setAttribute("pluginId", id);
+            req.setAttribute("plugin", existing);
             req.setAttribute("form", form);
             req.setAttribute("body", body);
             req.setAttribute("tagsCsv", String.join(",", tags));
             req.setAttribute("errors", ve.fieldErrors());
             req.setAttribute("errorMessage", ve.userMessage());
             req.setAttribute("tags", tagDao.findAllOrLimit(100));
-            return ViewResult.forward("asset/form");
+            return ViewResult.forward("plugin/form");
         }
     }
 

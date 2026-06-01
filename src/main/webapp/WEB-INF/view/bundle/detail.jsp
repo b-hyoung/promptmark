@@ -1,4 +1,5 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="java.util.HashMap, java.util.Map" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <fmt:setBundle basename="bundle.messages"/>
@@ -12,6 +13,24 @@
 </c:forEach>
 <c:set var="savings" value="${sumOfParts - bundle.price}"/>
 <c:set var="savingsPct" value="${sumOfParts > 0 ? (savings * 100 / sumOfParts) : 0}"/>
+
+<%-- 셋트 안에서의 plugin 역할 (slug:title -> 한 단어 역할). DB 컬럼 없이 정적 매핑. --%>
+<%
+    Map<String,String> roles = new HashMap<>();
+    // blog-automation
+    roles.put("blog-automation:superpowers",  "글감 정리");
+    roles.put("blog-automation:copywriting",  "카피 생성");
+    roles.put("blog-automation:stop-slop",    "AI 티 정리");
+    // code-quality
+    roles.put("code-quality:karpathy-guidelines", "실수 검토");
+    roles.put("code-quality:simplify",            "코드 정리");
+    roles.put("code-quality:claude-api",          "통합 점검");
+    // design-ready
+    roles.put("design-ready:frontend-design", "UI 기반");
+    roles.put("design-ready:ogilvy",          "헤드라인");
+    roles.put("design-ready:copywriting",     "본문 카피");
+    request.setAttribute("pluginRoles", roles);
+%>
 
 <%@ include file="/WEB-INF/view/layout/header.jsp" %>
 
@@ -69,11 +88,34 @@
   </div>
 </section>
 
+<c:if test="${not empty bundle.plugins}">
+<section class="bundle-flow" aria-label="셋트 흐름">
+  <div class="flow-strip">
+    <c:forEach var="p" items="${bundle.plugins}" varStatus="loop">
+      <c:set var="roleKey" value="${bundle.slug}:${p.title}"/>
+      <c:set var="roleText" value="${pluginRoles[roleKey]}"/>
+      <div class="flow-node">
+        <div class="flow-num">${loop.index + 1}</div>
+        <div class="flow-plugin"><c:out value="${p.title}"/></div>
+        <div class="flow-role"><c:out value="${empty roleText ? p.summary : roleText}"/></div>
+      </div>
+      <c:if test="${!loop.last}">
+        <div class="flow-arrow" aria-hidden="true">→</div>
+      </c:if>
+    </c:forEach>
+  </div>
+  <div class="flow-outcome">
+    <span class="flow-outcome-label">결과</span>
+    <span class="flow-outcome-text"><c:out value="${bundle.tagline}"/></span>
+  </div>
+</section>
+</c:if>
+
 <section class="bundle-steps">
   <header class="section-header">
     <span class="section-label">/ steps</span>
-    <h2>이 셋트가 어떻게 동작하나요?</h2>
-    <p>각 플러그인이 단계별로 맡는 역할입니다.</p>
+    <h2>각 단계 자세히</h2>
+    <p>플러그인별 정확한 역할과 다음 단계로 전달되는 결과물입니다.</p>
   </header>
 
   <c:choose>
@@ -83,9 +125,16 @@
     <c:otherwise>
       <ol class="step-row">
         <c:forEach var="p" items="${bundle.plugins}" varStatus="loop">
+          <c:set var="roleKey" value="${bundle.slug}:${p.title}"/>
+          <c:set var="roleText" value="${pluginRoles[roleKey]}"/>
           <li class="step-card">
-            <div class="step-number">Step ${loop.index + 1}</div>
-            <h3 class="step-plugin-name"><c:out value="${p.title}"/></h3>
+            <div class="step-number">${loop.index + 1}단계</div>
+            <h3 class="step-plugin-name">
+              <c:out value="${p.title}"/>
+              <c:if test="${not empty roleText}">
+                <span class="step-role-tag"><c:out value="${roleText}"/></span>
+              </c:if>
+            </h3>
             <p class="step-plugin-summary"><c:out value="${p.summary}"/></p>
             <div class="step-meta">
               <c:choose>

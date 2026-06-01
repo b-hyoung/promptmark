@@ -133,7 +133,7 @@ public final class PluginBundleSeeder {
             Long existing = findPluginIdByTitle(c, p.title);
             if (existing != null) {
                 try (PreparedStatement ps = c.prepareStatement(
-                        "UPDATE plugins SET summary=?, body=?, price=0, status='PUBLIC', updated_at=now() WHERE id=?")) {
+                        "UPDATE plugins SET type='MD', summary=?, body=?, price=0, status='PUBLIC', updated_at=now() WHERE id=?")) {
                     ps.setString(1, p.summary);
                     ps.setString(2, p.body);
                     ps.setLong(3, existing);
@@ -144,7 +144,7 @@ public final class PluginBundleSeeder {
             }
             try (PreparedStatement ps = c.prepareStatement(
                     "INSERT INTO plugins (seller_id, type, title, summary, body, price, status) " +
-                    "VALUES (?, 'PROMPT', ?, ?, ?, 0, 'PUBLIC') RETURNING id")) {
+                    "VALUES (?, 'MD', ?, ?, ?, 0, 'PUBLIC') RETURNING id")) {
                 ps.setLong(1, sellerId);
                 ps.setString(2, p.title);
                 ps.setString(3, p.summary);

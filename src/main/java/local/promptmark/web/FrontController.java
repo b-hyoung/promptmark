@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import local.promptmark.config.DataSourceProvider;
 import local.promptmark.config.Env;
+import local.promptmark.dao.BundleDao;
 import local.promptmark.dao.PluginDao;
 import local.promptmark.dao.DownloadDao;
 import local.promptmark.dao.OrderDao;
@@ -22,6 +23,7 @@ import local.promptmark.dao.ReportDao;
 import local.promptmark.dao.TagDao;
 import local.promptmark.dao.UserDao;
 import local.promptmark.service.AdminService;
+import local.promptmark.service.BundleService;
 import local.promptmark.service.PluginService;
 import local.promptmark.service.AuthService;
 import local.promptmark.service.DownloadService;
@@ -79,6 +81,7 @@ public class FrontController extends HttpServlet {
 
         UserDao userDao = new UserDao(ds);
         PluginDao pluginDao = new PluginDao(ds);
+        BundleDao bundleDao = new BundleDao(ds);
         TagDao tagDao = new TagDao(ds);
         OrderDao orderDao = new OrderDao(ds);
         DownloadDao downloadDao = new DownloadDao(ds);
@@ -95,6 +98,7 @@ public class FrontController extends HttpServlet {
 
         AuthService authService = new AuthService(userDao);
         PluginService pluginService = new PluginService(ds, pluginDao, tagDao, embeddingClient);
+        BundleService bundleService = new BundleService(ds, bundleDao, embeddingClient);
         OrderService orderService = new OrderService(ds, pluginDao, orderDao);
         DownloadService downloadService = new DownloadService(ds, pluginDao, orderDao, downloadDao);
         AdminService adminService = new AdminService(ds, reportDao, pluginDao, userDao);
@@ -116,6 +120,13 @@ public class FrontController extends HttpServlet {
         registry.put("plugin.delete.POST",  new DeleteAction(pluginService));
         registry.put("plugin.download.GET", new DownloadAction(downloadService));
         registry.put("plugin.report.POST",  new ReportAction(reportDao));
+
+        // ── Bundle (curated sets, ADMIN only for CRUD) ────────────────
+        registry.put("bundle.list.GET",     new local.promptmark.web.action.bundle.ListAction(bundleService));
+        registry.put("bundle.detail.GET",   new local.promptmark.web.action.bundle.DetailAction(bundleService, bundleDao));
+        registry.put("bundle.new.GET",      new local.promptmark.web.action.bundle.CreateFormAction(pluginDao));
+        registry.put("bundle.new.POST",     new local.promptmark.web.action.bundle.CreateAction(bundleService));
+        registry.put("bundle.delete.POST",  new local.promptmark.web.action.bundle.DeleteAction(bundleService));
 
         // ── Cart ──────────────────────────────────────────────────────
         registry.put("cart.add.POST",    new AddAction(pluginDao, orderDao));

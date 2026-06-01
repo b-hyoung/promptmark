@@ -24,6 +24,8 @@ public final class AuthMap {
         // ── Public catalogue ──────────────────────────────────────────
         m.put("plugin.list",     Role.ANONYMOUS);
         m.put("plugin.detail",   Role.ANONYMOUS);
+        m.put("bundle.list",     Role.ANONYMOUS);
+        m.put("bundle.detail",   Role.ANONYMOUS);
 
         // ── Public chat / AI agent ────────────────────────────────────
         m.put("chat.page",      Role.ANONYMOUS);
@@ -33,6 +35,10 @@ public final class AuthMap {
         m.put("plugin.new",      Role.SELLER);
         m.put("plugin.edit",     Role.SELLER);
         m.put("plugin.delete",   Role.SELLER);
+
+        // ── Admin curation (bundles) ──────────────────────────────────
+        m.put("bundle.new",      Role.ADMIN);
+        m.put("bundle.delete",   Role.ADMIN);
 
         // ── Logged-in interactions ────────────────────────────────────
         m.put("plugin.download", Role.USER);

@@ -368,9 +368,9 @@ tr:hover { background: var(--surface-hover); }
 .flow-strip::-webkit-scrollbar { height: 4px; }
 .flow-strip::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 .flow-node {
-    flex: 1 1 0; min-width: 140px;
-    display: flex; flex-direction: column; gap: 6px;
-    padding: 14px 16px;
+    flex: 1 1 0; min-width: 180px;
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 16px 18px;
     background: var(--bg-elev);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
@@ -407,18 +407,25 @@ tr:hover { background: var(--surface-hover); }
     vertical-align: middle;
 }
 
-/* STEP cards */
+/* STEP cards — 호흡 ↑, 본문 영역 넓게 */
 .bundle-steps { margin-bottom: 56px; }
-.step-row { max-width: 880px; margin: 0 auto; list-style: none; padding: 0; display: grid; gap: 12px; }
+.step-row {
+    max-width: 960px; margin: 0 auto;
+    list-style: none; padding: 0;
+    display: grid; gap: 18px;
+}
 .step-card {
-    display: grid; grid-template-columns: 80px 1fr;
-    gap: 16px; align-items: start;
-    padding: 18px 22px;
+    display: flex; flex-direction: column;
+    gap: 12px;
+    padding: 26px 30px;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius-md);
     transition: border-color var(--dur-fast) var(--ease-out);
 }
 .step-card:hover { border-color: var(--border-strong); }
+.step-card-header {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
 .step-number {
     display: inline-flex; align-items: center; justify-content: center;
     padding: 4px 10px; border-radius: 4px;
@@ -426,11 +433,21 @@ tr:hover { background: var(--surface-hover); }
     font-family: var(--font-mono); font-weight: 700; font-size: 11px;
     white-space: nowrap;
     border: 1px solid var(--border-strong);
-    align-self: start;
 }
-.step-plugin-name { margin: 0 0 4px; font-size: 17px; color: var(--text-pri); font-family: var(--font-display); }
-.step-plugin-summary { margin: 0 0 10px; color: var(--text-sec); font-size: 14px; line-height: 1.55; }
-.step-meta { display: flex; gap: 14px; align-items: center; }
+.step-plugin-name {
+    margin: 0; font-size: 19px; color: var(--text-pri);
+    font-family: var(--font-display); line-height: 1.3;
+    display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.step-plugin-summary {
+    margin: 0;
+    color: var(--text-sec); font-size: 15px; line-height: 1.65;
+    max-width: 740px;
+}
+.step-meta {
+    display: flex; gap: 14px; align-items: center;
+    padding-top: 6px;
+}
 .step-price { font-family: var(--font-mono); font-weight: 700; color: var(--accent); font-size: 12px; }
 .step-price-free {
     background: var(--bg-elev); color: var(--accent);

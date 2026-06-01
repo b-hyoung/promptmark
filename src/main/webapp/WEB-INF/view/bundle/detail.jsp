@@ -128,13 +128,15 @@
           <c:set var="roleKey" value="${bundle.slug}:${p.title}"/>
           <c:set var="roleText" value="${pluginRoles[roleKey]}"/>
           <li class="step-card">
-            <div class="step-number">${loop.index + 1}단계</div>
-            <h3 class="step-plugin-name">
-              <c:out value="${p.title}"/>
-              <c:if test="${not empty roleText}">
-                <span class="step-role-tag"><c:out value="${roleText}"/></span>
-              </c:if>
-            </h3>
+            <div class="step-card-header">
+              <span class="step-number">${loop.index + 1}단계</span>
+              <h3 class="step-plugin-name">
+                <c:out value="${p.title}"/>
+                <c:if test="${not empty roleText}">
+                  <span class="step-role-tag"><c:out value="${roleText}"/></span>
+                </c:if>
+              </h3>
+            </div>
             <p class="step-plugin-summary"><c:out value="${p.summary}"/></p>
             <div class="step-meta">
               <c:choose>

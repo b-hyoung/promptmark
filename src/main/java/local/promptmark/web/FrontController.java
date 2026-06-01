@@ -128,6 +128,13 @@ public class FrontController extends HttpServlet {
         registry.put("bundle.new.POST",     new local.promptmark.web.action.bundle.CreateAction(bundleService));
         registry.put("bundle.delete.POST",  new local.promptmark.web.action.bundle.DeleteAction(bundleService));
 
+        // ── Demo (셋트로 만든 결과물 보기) ────────────────────────────
+        registry.put("demo.show.GET",       new local.promptmark.web.action.demo.ShowAction());
+
+        // ── Home / About (사이트 정체성) ─────────────────────────────
+        registry.put("home.index.GET",      new local.promptmark.web.action.home.IndexAction(bundleService));
+        registry.put("info.about.GET",      new local.promptmark.web.action.info.AboutAction());
+
         // ── Cart ──────────────────────────────────────────────────────
         registry.put("cart.add.POST",    new AddAction(pluginDao, orderDao));
         registry.put("cart.view.GET",    new ViewAction());

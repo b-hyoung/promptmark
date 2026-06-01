@@ -1,0 +1,50 @@
+<%@ page pageEncoding="UTF-8" %>
+<%-- expects ${slug} in request scope, set by ShowAction --%>
+<%
+    // slug → (bundleId, name)
+    java.util.Map<String,String[]> meta = new java.util.HashMap<>();
+    meta.put("blog-automation",  new String[]{"1","블로그 자동화 셋트"});
+    meta.put("code-quality",     new String[]{"2","코드 품질 셋트"});
+    meta.put("design-ready",     new String[]{"3","디자인 마감 셋트"});
+    meta.put("ad-copy",          new String[]{"4","광고 카피 셋트"});
+    meta.put("ai-app-launch",    new String[]{"5","Claude API 앱 출시 셋트"});
+    meta.put("mvp-bootstrap",    new String[]{"6","MVP 부트스트랩 셋트"});
+    String curSlug = (String) request.getAttribute("slug");
+    String[] cur = meta.get(curSlug);
+    request.setAttribute("curBundleId", cur != null ? cur[0] : "1");
+    request.setAttribute("curBundleName", cur != null ? cur[1] : "");
+
+    // 다른 데모 (현재 slug 제외)
+    java.util.List<String[]> others = new java.util.ArrayList<>();
+    for (java.util.Map.Entry<String,String[]> e : meta.entrySet()) {
+        if (!e.getKey().equals(curSlug)) {
+            others.add(new String[]{e.getKey(), e.getValue()[1]});
+        }
+    }
+    java.util.Collections.shuffle(others);
+    request.setAttribute("otherDemos", others.subList(0, Math.min(3, others.size())));
+%>
+
+<aside class="demo-signature">
+  <div class="sig-line">CURATED & MADE BY <span class="accent">b-hyoung</span> · WITH <c:out value="${curBundleName}"/></div>
+  <h3>이 페이지 자체가 셋트의 결과물입니다.</h3>
+  <p>같은 셋트로 당신의 결과도 만들 수 있어요.</p>
+  <div class="sig-cta">
+    <a class="btn" href="${ctx}/app/bundle/detail?id=${curBundleId}">셋트 보기</a>
+    <a class="btn-ghost" href="${ctx}/app/bundle/list">전체 셋트</a>
+  </div>
+</aside>
+
+<section class="demo-other">
+  <h2>다른 셋트로 만든 데모도 보기</h2>
+  <p>각 셋트마다 다른 결과물이 나옵니다.</p>
+  <div class="related-grid">
+    <c:forEach var="od" items="${otherDemos}">
+      <a class="related-card" href="${ctx}/app/demo/show?slug=${od[0]}">
+        <div class="related-tag">/demo</div>
+        <h3>${od[1]}</h3>
+        <p>이 셋트로 만든 결과 보기 →</p>
+      </a>
+    </c:forEach>
+  </div>
+</section>

@@ -85,17 +85,12 @@
         </c:choose>
       </div>
       <div class="price-card-right">
-        <c:choose>
-          <c:when test="${bundle.price == 0}">
-            <a class="btn btn-cta" href="https://github.com/obra/superpowers" target="_blank" rel="noopener">↗ GitHub에서 설치</a>
-          </c:when>
-          <c:when test="${not empty sessionScope.LOGIN_USER}">
-            <a class="btn btn-cta" href="${ctx}/app/cart/view">▶ 구매하기</a>
-          </c:when>
-          <c:otherwise>
-            <a class="btn btn-cta" href="${ctx}/app/auth/login">로그인하고 구매</a>
-          </c:otherwise>
-        </c:choose>
+        <a class="btn btn-cta" href="${ctx}/app/demo/show?slug=${bundle.slug}#result">
+          🎁 셋트로 만든 데모 →
+        </a>
+        <a class="btn-ghost btn-cta-sub" href="${ctx}/app/demo/show?slug=${bundle.slug}#history">
+          📜 작업 히스토리
+        </a>
       </div>
     </div>
   </div>
@@ -173,6 +168,34 @@
   <section class="bundle-story">
     <div class="story-body markdown-body">${storyHtml}</div>
   </section>
+</c:if>
+
+<%-- 관련 셋트 (slug 기반 정적 추천) --%>
+<%
+    local.promptmark.dto.Bundle _b = (local.promptmark.dto.Bundle) request.getAttribute("bundle");
+    java.util.Map<String, String[][]> rel = new java.util.HashMap<>();
+    rel.put("blog-automation",  new String[][] {{"ad-copy","광고 카피","마케팅 헤드라인까지"},{"design-ready","디자인 마감","랜딩 페이지가 필요하면"},{"mvp-bootstrap","MVP 부트스트랩","제품 자체를 만든다면"}});
+    rel.put("code-quality",     new String[][] {{"ai-app-launch","Claude API 앱","Claude API 쓰는 앱이라면"},{"mvp-bootstrap","MVP 부트스트랩","코드 + UI + 카피 한 번에"},{"design-ready","디자인 마감","UI까지 한 번에"}});
+    rel.put("design-ready",     new String[][] {{"ad-copy","광고 카피","랜딩 + 광고 카피"},{"blog-automation","블로그 자동화","블로그까지 같은 결로"},{"mvp-bootstrap","MVP 부트스트랩","UI + 제품 출시"}});
+    rel.put("ad-copy",          new String[][] {{"blog-automation","블로그 자동화","블로그 콘텐츠로 확장"},{"design-ready","디자인 마감","랜딩까지 셋트로"},{"mvp-bootstrap","MVP 부트스트랩","제품부터 광고까지"}});
+    rel.put("ai-app-launch",    new String[][] {{"code-quality","코드 품질","API 코드 리뷰"},{"mvp-bootstrap","MVP 부트스트랩","제품으로 마감"},{"design-ready","디자인 마감","UI를 더 깊이"}});
+    rel.put("mvp-bootstrap",    new String[][] {{"ai-app-launch","Claude API 앱","AI 기능 더 깊이"},{"design-ready","디자인 마감","디자인을 더 깊이"},{"code-quality","코드 품질","코드 품질 가드"}});
+    if (_b != null) request.setAttribute("related", rel.get(_b.getSlug()));
+%>
+<c:if test="${not empty related}">
+<section class="bundle-related">
+  <h2>이 셋트가 마음에 들면 →</h2>
+  <p>같은 사람을 다른 도메인으로 데려가는 셋트들</p>
+  <div class="related-grid">
+    <c:forEach var="r" items="${related}">
+      <a class="related-card" href="${ctx}/app/bundle/list">
+        <div class="related-tag">/${r[0]}</div>
+        <h3>${r[1]}</h3>
+        <p>${r[2]}</p>
+      </a>
+    </c:forEach>
+  </div>
+</section>
 </c:if>
 
 <footer class="bundle-footer-meta">

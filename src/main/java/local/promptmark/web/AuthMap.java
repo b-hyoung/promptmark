@@ -26,6 +26,9 @@ public final class AuthMap {
         m.put("plugin.detail",   Role.ANONYMOUS);
         m.put("bundle.list",     Role.ANONYMOUS);
         m.put("bundle.detail",   Role.ANONYMOUS);
+        m.put("demo.show",       Role.ANONYMOUS);
+        m.put("home.index",      Role.ANONYMOUS);
+        m.put("info.about",      Role.ANONYMOUS);
 
         // ── Public chat / AI agent ────────────────────────────────────
         m.put("chat.page",      Role.ANONYMOUS);

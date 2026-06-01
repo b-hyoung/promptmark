@@ -1,32 +1,33 @@
 -- Migration V2: rename `asset` domain to `plugin` and add `bundle` (N:N with plugin)
--- Safe to re-run: all renames are guarded, all CREATEs are IF NOT EXISTS.
+-- Idempotent: safe to re-run on every boot. Handles two reentry cases:
+--   (a) First boot:   assets exists with data, plugins absent → rename
+--   (b) Later boots:  plugins exists, V1 has re-created an empty `assets` shell → drop the shell
 
 SET search_path TO promptmark, public, extensions;
 
--- 1. assets -> plugins (one-time rename)
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='promptmark' AND table_name='assets')
-       AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='promptmark' AND table_name='plugins') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='promptmark' AND table_name='plugins') THEN
+        -- (b) plugins is already the real table. Drop any leftover V1 `assets` shell.
+        DROP TABLE IF EXISTS promptmark.asset_tags CASCADE;
+        DROP TABLE IF EXISTS promptmark.assets CASCADE;
+    ELSIF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='promptmark' AND table_name='assets') THEN
+        -- (a) First boot path
         EXECUTE 'ALTER TABLE assets RENAME TO plugins';
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='promptmark' AND table_name='asset_tags') THEN
+            EXECUTE 'ALTER TABLE asset_tags RENAME TO plugin_tags';
+            EXECUTE 'ALTER TABLE plugin_tags RENAME COLUMN asset_id TO plugin_id';
+        END IF;
     END IF;
 END $$;
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='promptmark' AND table_name='asset_tags')
-       AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='promptmark' AND table_name='plugin_tags') THEN
-        EXECUTE 'ALTER TABLE asset_tags RENAME TO plugin_tags';
-        EXECUTE 'ALTER TABLE plugin_tags RENAME COLUMN asset_id TO plugin_id';
-    END IF;
-END $$;
-
+-- Indexes: rename if old name still exists (first boot), otherwise silently skip
 ALTER INDEX IF EXISTS idx_assets_status_created RENAME TO idx_plugins_status_created;
-ALTER INDEX IF EXISTS idx_assets_seller RENAME TO idx_plugins_seller;
-ALTER INDEX IF EXISTS idx_assets_title_trgm RENAME TO idx_plugins_title_trgm;
-ALTER INDEX IF EXISTS idx_assets_embedding RENAME TO idx_plugins_embedding;
+ALTER INDEX IF EXISTS idx_assets_seller         RENAME TO idx_plugins_seller;
+ALTER INDEX IF EXISTS idx_assets_title_trgm     RENAME TO idx_plugins_title_trgm;
+ALTER INDEX IF EXISTS idx_assets_embedding      RENAME TO idx_plugins_embedding;
 
--- 2. bundles (new — curated set of plugins)
+-- bundles + bundle_plugin (N:N) — pure CREATE IF NOT EXISTS, idempotent
 CREATE TABLE IF NOT EXISTS bundles (
     id            BIGSERIAL PRIMARY KEY,
     curator_id    BIGINT REFERENCES users(id),
@@ -54,7 +55,7 @@ CREATE TABLE IF NOT EXISTS bundle_plugin (
 );
 CREATE INDEX IF NOT EXISTS idx_bundle_plugin_plugin ON bundle_plugin(plugin_id);
 
--- 3. polymorphic columns on order_items / downloads / reports
+-- order_items / downloads / reports polymorphic columns
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS target_type VARCHAR(10) NOT NULL DEFAULT 'PLUGIN';
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS target_id   BIGINT;
 UPDATE order_items SET target_id = asset_id WHERE target_id IS NULL;

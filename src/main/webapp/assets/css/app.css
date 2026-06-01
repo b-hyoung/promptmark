@@ -316,6 +316,25 @@ tr:hover { background: var(--surface-hover); }
     line-height: 1; display: flex; align-items: baseline; gap: 4px;
 }
 .price-big .won { font-size: 0.55em; color: var(--text-sec); margin-left: 4px; }
+.price-free {
+    background: var(--accent-grad);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    letter-spacing: -0.02em;
+}
+.price-free .won {
+    -webkit-text-fill-color: var(--text-mute);
+    background: none;
+    font-size: 0.5em;
+}
+.step-price-free {
+    background: rgba(6,214,160,0.15);
+    color: var(--accent-2) !important;
+    padding: 2px 10px; border-radius: 999px;
+    border: 1px solid rgba(6,214,160,0.35);
+    font-size: 11px; font-family: var(--font-mono); font-weight: 700;
+}
+.hint { color: var(--text-mute); font-size: 13px; }
 .price-compare { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .price-strike { color: var(--text-mute); font-size: 13px; text-decoration: line-through; }
 .savings-badge {

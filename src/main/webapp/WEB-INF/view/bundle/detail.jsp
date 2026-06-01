@@ -34,16 +34,29 @@
 
     <div class="price-card">
       <div class="price-card-left">
-        <div class="price-big"><fmt:formatNumber value="${bundle.price}" type="number"/><span class="won">원</span></div>
-        <c:if test="${savings > 0}">
-          <div class="price-compare">
-            <span class="price-strike"><fmt:formatNumber value="${sumOfParts}" type="number"/>원 단품 합산</span>
-            <span class="savings-badge">✓ <fmt:formatNumber value="${savings}" type="number"/>원 절약 (<fmt:formatNumber value="${savingsPct}" maxFractionDigits="0"/>%)</span>
-          </div>
-        </c:if>
+        <c:choose>
+          <c:when test="${bundle.price == 0}">
+            <div class="price-big price-free">FREE<span class="won">· 오픈소스</span></div>
+            <div class="price-compare">
+              <span class="hint">셋트로 묶인 모든 스킬을 클로드 코드에 바로 설치할 수 있습니다.</span>
+            </div>
+          </c:when>
+          <c:otherwise>
+            <div class="price-big"><fmt:formatNumber value="${bundle.price}" type="number"/><span class="won">원</span></div>
+            <c:if test="${savings > 0}">
+              <div class="price-compare">
+                <span class="price-strike"><fmt:formatNumber value="${sumOfParts}" type="number"/>원 단품 합산</span>
+                <span class="savings-badge">✓ <fmt:formatNumber value="${savings}" type="number"/>원 절약 (<fmt:formatNumber value="${savingsPct}" maxFractionDigits="0"/>%)</span>
+              </div>
+            </c:if>
+          </c:otherwise>
+        </c:choose>
       </div>
       <div class="price-card-right">
         <c:choose>
+          <c:when test="${bundle.price == 0}">
+            <a class="btn btn-cta" href="https://github.com/obra/superpowers" target="_blank" rel="noopener">↗ GitHub에서 설치</a>
+          </c:when>
           <c:when test="${not empty sessionScope.LOGIN_USER}">
             <a class="btn btn-cta" href="${ctx}/app/cart/view">▶ 구매하기</a>
           </c:when>
@@ -75,7 +88,14 @@
             <h3 class="step-plugin-name"><c:out value="${p.title}"/></h3>
             <p class="step-plugin-summary"><c:out value="${p.summary}"/></p>
             <div class="step-meta">
-              <span class="step-price"><fmt:formatNumber value="${p.price}" type="number"/>원</span>
+              <c:choose>
+                <c:when test="${p.price == 0}">
+                  <span class="step-price step-price-free">FREE</span>
+                </c:when>
+                <c:otherwise>
+                  <span class="step-price"><fmt:formatNumber value="${p.price}" type="number"/>원</span>
+                </c:otherwise>
+              </c:choose>
               <a class="step-link" href="${ctx}/app/plugin/detail?id=${p.id}">상세 보기 →</a>
             </div>
           </li>

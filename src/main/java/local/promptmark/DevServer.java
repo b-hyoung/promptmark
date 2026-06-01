@@ -27,6 +27,7 @@ public final class DevServer {
 
         DataSource ds = DataSourceProvider.init(env);
         SchemaApplier.applyFromClasspath(ds, "db/migration/V1__init.sql");
+        SchemaApplier.applyFromClasspath(ds, "db/migration/V2__rename_to_plugin_add_bundle.sql");
         AdminSeeder.seed(ds,
             env.getOrDefault("ADMIN_EMAIL", ""),
             env.getOrDefault("ADMIN_PWD", ""));

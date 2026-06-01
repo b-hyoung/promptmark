@@ -9,7 +9,7 @@
   <ul class="nav-links">
     <li><a href="${ctx}/app/plugin/list"><fmt:message key="nav.plugins"/></a></li>
     <li><a href="${ctx}/app/bundle/list">셋트</a></li>
-    <li><a href="${ctx}/app/chat"><fmt:message key="nav.chat"/></a></li>
+    <li><a href="${ctx}/app/chat/page"><fmt:message key="nav.chat"/></a></li>
     <c:if test="${empty me}">
       <li><a href="${ctx}/app/auth/login"><fmt:message key="nav.login"/></a></li>
       <li><a href="${ctx}/app/auth/signup"><fmt:message key="nav.signup"/></a></li>

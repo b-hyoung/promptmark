@@ -28,53 +28,55 @@ public final class PluginBundleSeeder {
 
     private static final class PluginSeed {
         final String title, author, category, summary, body;
-        PluginSeed(String title, String author, String category, String summary, String body) {
+        final int price;
+        PluginSeed(String title, String author, String category, String summary, String body, int price) {
             this.title = title; this.author = author; this.category = category;
-            this.summary = summary; this.body = body;
+            this.summary = summary; this.body = body; this.price = price;
         }
     }
     private static final class BundleSeed {
         final String slug, name, tagline, story, thumbnail;
+        final int price;
         final List<String> pluginTitles;
-        BundleSeed(String slug, String name, String tagline, String story, String thumbnail,
+        BundleSeed(String slug, String name, String tagline, String story, int price, String thumbnail,
                    List<String> pluginTitles) {
             this.slug = slug; this.name = name; this.tagline = tagline; this.story = story;
-            this.thumbnail = thumbnail; this.pluginTitles = pluginTitles;
+            this.price = price; this.thumbnail = thumbnail; this.pluginTitles = pluginTitles;
         }
     }
 
     private static final List<PluginSeed> PLUGINS = List.of(
         new PluginSeed("superpowers", "obra", "워크플로",
             "Claude Code 안에서 스킬 발견·조합·실행을 자동화하는 메타 스킬.",
-            "**superpowers** 는 Claude Code/Claude Agent SDK 환경에서 다른 스킬을 발견하고 묶어 실행하기 위한 베이스 메타 스킬입니다.\n\n포함 워크플로\n- `brainstorming` — 아이디어를 설계 문서로 정제\n- `writing-plans` — 설계 문서를 단계별 구현 계획으로\n- `executing-plans` / `subagent-driven-development` — 계획을 코드로\n- `test-driven-development`, `systematic-debugging`, `verification-before-completion` — 품질 가드\n\n어떤 셋트든 이 위에서 시작하는 게 정석입니다."),
+            "**superpowers** 는 Claude Code/Claude Agent SDK 환경에서 다른 스킬을 발견하고 묶어 실행하기 위한 베이스 메타 스킬입니다.\n\n포함 워크플로\n- `brainstorming` — 아이디어를 설계 문서로 정제\n- `writing-plans` — 설계 문서를 단계별 구현 계획으로\n- `executing-plans` / `subagent-driven-development` — 계획을 코드로\n- `test-driven-development`, `systematic-debugging`, `verification-before-completion` — 품질 가드\n\n어떤 셋트든 이 위에서 시작하는 게 정석입니다.", 9900),
 
         new PluginSeed("copywriting", "obra", "글쓰기",
             "랜딩페이지·이메일·CTA 등 마케팅 카피를 빠르게 만드는 스킬.",
-            "**copywriting** 은 마케팅 카피의 6대 영역(홈/랜딩/가격/기능/About/제품)을 한 인터페이스로 다루는 스킬입니다.\n\n특화 트리거\n- \"write copy for\", \"improve this copy\", \"rewrite this page\", \"headline help\", \"CTA copy\"\n\n별도의 이메일 시퀀스는 `email-sequence`, 팝업은 `popup-cro` 가 따로 있습니다."),
+            "**copywriting** 은 마케팅 카피의 6대 영역(홈/랜딩/가격/기능/About/제품)을 한 인터페이스로 다루는 스킬입니다.\n\n특화 트리거\n- \"write copy for\", \"improve this copy\", \"rewrite this page\", \"headline help\", \"CTA copy\"\n\n별도의 이메일 시퀀스는 `email-sequence`, 팝업은 `popup-cro` 가 따로 있습니다.", 7900),
 
         new PluginSeed("stop-slop", "obra", "글쓰기",
             "AI 글에서 흔한 어색한 표현·구문을 자동으로 정리.",
-            "**stop-slop** 은 ChatGPT/Claude 등이 자주 내뱉는 형식적 패턴(`delve into`, `treasure trove of`, 잦은 emdash 등)을 식별하고 사람 손맛으로 교체합니다.\n\n글 초안에 한 번만 돌려도 \"AI 티\"가 확연히 줄어듭니다. `copywriting` 다음 단계의 마감재."),
+            "**stop-slop** 은 ChatGPT/Claude 등이 자주 내뱉는 형식적 패턴(`delve into`, `treasure trove of`, 잦은 emdash 등)을 식별하고 사람 손맛으로 교체합니다.\n\n글 초안에 한 번만 돌려도 \"AI 티\"가 확연히 줄어듭니다. `copywriting` 다음 단계의 마감재.", 4900),
 
         new PluginSeed("ogilvy", "obra", "광고",
             "David Ogilvy의 광고 원칙으로 카피·헤드라인을 평가/개선.",
-            "**ogilvy** 는 *How to Create Advertising That Sells* (1972) + *Ogilvy on Advertising* 의 원칙을 코드로 옮긴 스킬입니다.\n\n다루는 영역\n- 포지셔닝, 헤드라인, 약속(promise), 브랜드 보이스\n- 긴 카피 vs 짧은 카피의 판단 기준\n- 시각 논리 (visual logic)\n\n수상용 카피가 아니라 **팔리는 카피**를 만드는 데 초점."),
+            "**ogilvy** 는 *How to Create Advertising That Sells* (1972) + *Ogilvy on Advertising* 의 원칙을 코드로 옮긴 스킬입니다.\n\n다루는 영역\n- 포지셔닝, 헤드라인, 약속(promise), 브랜드 보이스\n- 긴 카피 vs 짧은 카피의 판단 기준\n- 시각 논리 (visual logic)\n\n수상용 카피가 아니라 **팔리는 카피**를 만드는 데 초점.", 5900),
 
         new PluginSeed("karpathy-guidelines", "obra", "코딩",
             "LLM이 코드 짤 때 흔히 저지르는 실수를 줄이는 행동 가이드.",
-            "**karpathy-guidelines** 는 Andrej Karpathy가 정리한 LLM 코딩 함정을 회피하기 위한 행동 규칙 집합입니다.\n\n핵심 원칙\n- 과도한 복잡화 회피, 표면적 변경 우선\n- 가정을 명시화 (\"이 함수는 X가 보장된다고 가정한다\")\n- 검증 가능한 성공 기준 정의\n- 외과적 변경 (한 군데만 바꾸기)\n\n새 기능보다 **버그 수정/리팩토링** 흐름에서 빛납니다."),
+            "**karpathy-guidelines** 는 Andrej Karpathy가 정리한 LLM 코딩 함정을 회피하기 위한 행동 규칙 집합입니다.\n\n핵심 원칙\n- 과도한 복잡화 회피, 표면적 변경 우선\n- 가정을 명시화 (\"이 함수는 X가 보장된다고 가정한다\")\n- 검증 가능한 성공 기준 정의\n- 외과적 변경 (한 군데만 바꾸기)\n\n새 기능보다 **버그 수정/리팩토링** 흐름에서 빛납니다.", 8900),
 
         new PluginSeed("frontend-design", "obra (impeccable)", "디자인",
             "특색 있는, 생산 수준의 프론트엔드 인터페이스를 빠르게 생성.",
-            "**impeccable:frontend-design** 은 평범한 AI 결과물의 함정(generic Tailwind look, 보일러플레이트)을 피하고 폴리시된 컴포넌트/페이지를 만들기 위한 스킬입니다.\n\n무엇을 만들 때 쓰나\n- 웹 컴포넌트, 페이지, 아티팩트\n- 포스터, 마케팅 페이지, 데모 앱\n- 임펙커블의 다른 디자인 스킬(`bolder`, `colorize`, `typeset`, `animate` 등) 의 기반"),
+            "**impeccable:frontend-design** 은 평범한 AI 결과물의 함정(generic Tailwind look, 보일러플레이트)을 피하고 폴리시된 컴포넌트/페이지를 만들기 위한 스킬입니다.\n\n무엇을 만들 때 쓰나\n- 웹 컴포넌트, 페이지, 아티팩트\n- 포스터, 마케팅 페이지, 데모 앱\n- 임펙커블의 다른 디자인 스킬(`bolder`, `colorize`, `typeset`, `animate` 등) 의 기반", 14900),
 
         new PluginSeed("claude-api", "anthropic", "개발",
             "Anthropic SDK 기반 앱을 구축·디버깅·최적화. 프롬프트 캐싱 기본 포함.",
-            "**claude-api** 는 `anthropic` / `@anthropic-ai/sdk` 사용 앱을 만들 때 호출되는 스킬입니다.\n\n다루는 영역\n- Tool use, prompt caching, thinking, compaction\n- Batch API, Files API, Citations, Memory\n- 모델 버전 마이그레이션 (Opus 4.5 → 4.6 → 4.7 등)\n\nOpenAI SDK 코드나 provider-neutral 코드에는 적용 안 됨."),
+            "**claude-api** 는 `anthropic` / `@anthropic-ai/sdk` 사용 앱을 만들 때 호출되는 스킬입니다.\n\n다루는 영역\n- Tool use, prompt caching, thinking, compaction\n- Batch API, Files API, Citations, Memory\n- 모델 버전 마이그레이션 (Opus 4.5 → 4.6 → 4.7 등)\n\nOpenAI SDK 코드나 provider-neutral 코드에는 적용 안 됨.", 6900),
 
         new PluginSeed("simplify", "obra", "리팩토링",
             "변경된 코드의 재사용·품질·효율을 검토하고 발견된 문제를 직접 수정.",
-            "**simplify** 는 한 PR 단위로 코드를 한 바퀴 돌면서 다음을 검토·정리합니다.\n\n- 중복 (다른 곳에서 이미 같은 일을 하는 함수/타입)\n- 죽은 코드 (사용처 없는 export/필드)\n- 복잡도 (분기·중첩이 과한 함수)\n- 일관성 (네이밍, 에러 처리 패턴)\n\n리뷰어가 잡을 만한 것을 한 발 먼저 잡아 라운드트립을 줄여줍니다.")
+            "**simplify** 는 한 PR 단위로 코드를 한 바퀴 돌면서 다음을 검토·정리합니다.\n\n- 중복 (다른 곳에서 이미 같은 일을 하는 함수/타입)\n- 죽은 코드 (사용처 없는 export/필드)\n- 복잡도 (분기·중첩이 과한 함수)\n- 일관성 (네이밍, 에러 처리 패턴)\n\n리뷰어가 잡을 만한 것을 한 발 먼저 잡아 라운드트립을 줄여줍니다.", 5900)
     );
 
     private static final List<BundleSeed> BUNDLES = List.of(
@@ -104,7 +106,7 @@ public final class PluginBundleSeeder {
             "**superpowers** 만으로는 글의 \"감\"이 안 잡힙니다 (메타 워크플로). " +
             "**copywriting** 만 쓰면 카피는 좋은데 흐름 결정이 안 됩니다. " +
             "**stop-slop** 만 쓰면 다듬을 게 없습니다. 세 스킬은 각각 부족한 부분을 정확히 보완합니다.",
-            "https://picsum.photos/seed/bdblog/600/400",
+            17900, "mock:blog",
             List.of("superpowers", "copywriting", "stop-slop")),
 
         new BundleSeed("code-quality", "코드 품질 셋트",
@@ -126,7 +128,7 @@ public final class PluginBundleSeeder {
             "- PR당 평균 변경 line 수: 거의 동일 (단순 정리 ↑, 무의미한 변경 ↓)\n\n" +
             "## 왜 이 조합인가\n\n" +
             "karpathy는 \"실수 회피\", simplify는 \"이미 들어간 변경의 청소\", claude-api는 \"외부 의존의 검증\". 세 단계가 PR 리뷰의 일반적 시퀀스와 정확히 맞물립니다.",
-            "https://picsum.photos/seed/bdquality/600/400",
+            16900, "mock:code",
             List.of("karpathy-guidelines", "simplify", "claude-api")),
 
         new BundleSeed("design-ready", "디자인 마감 셋트",
@@ -148,7 +150,7 @@ public final class PluginBundleSeeder {
             "## 왜 이 조합인가\n\n" +
             "디자인 작업이 멈추는 지점은 보통 \"무엇을 만들지\"가 아니라 **\"카피를 못 정해서 컴포넌트 사이즈도 못 정함\"** 단계입니다.\n\n" +
             "이 셋트는 UI → 카피 순서를 강제해 그 데드락을 풀어줍니다. ogilvy가 카피 품질, copywriting이 작성 속도, frontend-design이 시각 마감을 책임집니다.",
-            "https://picsum.photos/seed/bddesign/600/400",
+            21900, "mock:design",
             List.of("frontend-design", "ogilvy", "copywriting")),
 
         new BundleSeed("ad-copy", "광고 카피 셋트",
@@ -173,7 +175,7 @@ public final class PluginBundleSeeder {
             "**A/B/C 테스트 결과**: 광고 CTR A 2.1% / B 3.4% / C **4.8%**. C로 전환.\n\n" +
             "## 왜 이 조합인가\n\n" +
             "ogilvy가 약속과 헤드라인의 \"각도\"를, copywriting이 본문의 \"속도\"를, stop-slop이 클리셰 제거의 \"마감\"을 담당합니다. 광고 카피는 헤드라인 70~80% 영향이라 ogilvy를 가장 먼저 부르는 게 정석.",
-            "https://picsum.photos/seed/bdad/600/400",
+            14900, "mock:ad",
             List.of("ogilvy", "copywriting", "stop-slop")),
 
         new BundleSeed("ai-app-launch", "Claude API 앱 출시 셋트",
@@ -197,7 +199,7 @@ public final class PluginBundleSeeder {
             "**비용**: cache_control 활성으로 인터뷰 1세션당 토큰 비용 **$0.43 → $0.12** (72% 절감).\n\n" +
             "## 왜 이 조합인가\n\n" +
             "Claude API 앱의 흔한 함정은 \"호출은 돌지만 UI가 못 따라가는 것\" (스트리밍 처리, 빈 상태, 에러). claude-api 단독으로는 풀 수 없습니다. UI를 동시에 만들어주는 frontend-design + 출시 직전 코드 정리해주는 simplify 가 빠진 부분을 채웁니다.",
-            "https://picsum.photos/seed/bdaiapp/600/400",
+            21900, "mock:aiapp",
             List.of("claude-api", "frontend-design", "simplify")),
 
         new BundleSeed("mvp-bootstrap", "MVP 부트스트랩 셋트",
@@ -226,7 +228,7 @@ public final class PluginBundleSeeder {
             "**총 코딩 시간**: 약 28시간. 비슷한 MVP 평균(120시간) 대비 **23%**.\n\n" +
             "## 왜 이 조합인가\n\n" +
             "MVP가 출시까지 못 가는 가장 흔한 이유는 \"기능 결정 / 디자인 / 카피 / 코드 품질\" 네 단계 중 한 곳에서 멈추기 때문입니다. 보통 셋 중 하나는 잘 하지만 나머지에서 멈춤. 네 스킬을 묶어서 어느 단계에서도 멈추지 않게 합니다.",
-            "https://picsum.photos/seed/bdmvp/600/400",
+            29900, "mock:mvp",
             List.of("superpowers", "frontend-design", "copywriting", "karpathy-guidelines"))
     );
 
@@ -266,10 +268,11 @@ public final class PluginBundleSeeder {
             Long existing = findPluginIdByTitle(c, p.title);
             if (existing != null) {
                 try (PreparedStatement ps = c.prepareStatement(
-                        "UPDATE plugins SET type='MD', summary=?, body=?, price=0, status='PUBLIC', updated_at=now() WHERE id=?")) {
+                        "UPDATE plugins SET type='MD', summary=?, body=?, price=?, status='PUBLIC', updated_at=now() WHERE id=?")) {
                     ps.setString(1, p.summary);
                     ps.setString(2, p.body);
-                    ps.setLong(3, existing);
+                    ps.setInt(3, p.price);
+                    ps.setLong(4, existing);
                     ps.executeUpdate();
                 }
                 ids.put(p.title, existing);
@@ -277,11 +280,12 @@ public final class PluginBundleSeeder {
             }
             try (PreparedStatement ps = c.prepareStatement(
                     "INSERT INTO plugins (seller_id, type, title, summary, body, price, status) " +
-                    "VALUES (?, 'MD', ?, ?, ?, 0, 'PUBLIC') RETURNING id")) {
+                    "VALUES (?, 'MD', ?, ?, ?, ?, 'PUBLIC') RETURNING id")) {
                 ps.setLong(1, sellerId);
                 ps.setString(2, p.title);
                 ps.setString(3, p.summary);
                 ps.setString(4, p.body);
+                ps.setInt(5, p.price);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) ids.put(p.title, rs.getLong(1));
                 }
@@ -308,25 +312,27 @@ public final class PluginBundleSeeder {
             long bundleId;
             if (existing != null) {
                 try (PreparedStatement ps = c.prepareStatement(
-                        "UPDATE bundles SET name=?, tagline=?, story=?, price=0, thumbnail=?, status='PUBLIC', updated_at=now() WHERE id=?")) {
+                        "UPDATE bundles SET name=?, tagline=?, story=?, price=?, thumbnail=?, status='PUBLIC', updated_at=now() WHERE id=?")) {
                     ps.setString(1, b.name);
                     ps.setString(2, b.tagline);
                     ps.setString(3, b.story);
-                    ps.setString(4, b.thumbnail);
-                    ps.setLong(5, existing);
+                    ps.setInt(4, b.price);
+                    ps.setString(5, b.thumbnail);
+                    ps.setLong(6, existing);
                     ps.executeUpdate();
                 }
                 bundleId = existing;
             } else {
                 try (PreparedStatement ps = c.prepareStatement(
                         "INSERT INTO bundles (curator_id, slug, name, tagline, story, price, thumbnail, status) " +
-                        "VALUES (?, ?, ?, ?, ?, 0, ?, 'PUBLIC') RETURNING id")) {
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, 'PUBLIC') RETURNING id")) {
                     ps.setLong(1, curatorId);
                     ps.setString(2, b.slug);
                     ps.setString(3, b.name);
                     ps.setString(4, b.tagline);
                     ps.setString(5, b.story);
-                    ps.setString(6, b.thumbnail);
+                    ps.setInt(6, b.price);
+                    ps.setString(7, b.thumbnail);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) continue;
                         bundleId = rs.getLong(1);

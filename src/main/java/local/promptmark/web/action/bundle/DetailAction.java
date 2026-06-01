@@ -1,11 +1,15 @@
 package local.promptmark.web.action.bundle;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
+import com.vladsch.flexmark.util.misc.Extension;
 
 import local.promptmark.dao.BundleDao;
 import local.promptmark.dto.Bundle;
@@ -16,8 +20,9 @@ import local.promptmark.web.ViewResult;
 
 /** GET /app/bundle/detail?id=N — also renders bundle.story markdown into bodyHtml. */
 public class DetailAction implements Action {
-    private static final Parser MD_PARSER = Parser.builder().build();
-    private static final HtmlRenderer MD_RENDERER = HtmlRenderer.builder().build();
+    private static final List<Extension> MD_EXTS = List.of(TablesExtension.create());
+    private static final Parser MD_PARSER = Parser.builder().extensions(MD_EXTS).build();
+    private static final HtmlRenderer MD_RENDERER = HtmlRenderer.builder().extensions(MD_EXTS).build();
 
     private final BundleService bundleService;
     private final BundleDao bundleDao;
